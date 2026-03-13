@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /**
@@ -81,7 +83,7 @@ public class LoginController {
                     } else {
                         // 非管理员跳转到报表门户
                         logger.info("非管理员用户 {} 跳转到报表门户", username);
-                        return "redirect:/static/portal/index.html";
+                        return "redirect:/portal/index.html";
                     }
                 } catch (Exception e) {
                     logger.error("获取用户信息失败：" + e.getMessage(), e);
@@ -92,14 +94,17 @@ public class LoginController {
                 logger.error("登录失败：" + result.getMsg());
                 // 记录登录失败日志
                 auditLogService.logLogin(username, ip, false, result.getMsg());
-                // 返回密码错误提示
-                return "redirect:" + LOGIN_PAGE + "?error=1&msg=" + result.getMsg();
+                // 返回密码错误提示 - 使用URL编码
+                String encodedMsg = URLEncoder.encode(result.getMsg(), StandardCharsets.UTF_8);
+                return "redirect:" + LOGIN_PAGE + "?error=1&msg=" + encodedMsg;
             }
         } catch (Exception e) {
             logger.error("登录异常：" + e.getMessage());
             // 记录登录异常日志
             auditLogService.logLogin(username, ip, false, "登录异常：" + e.getMessage());
-            return "redirect:" + LOGIN_PAGE + "?error=1&msg=" + e.getMessage();
+            // 使用URL编码
+            String encodedMsg = URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8);
+            return "redirect:" + LOGIN_PAGE + "?error=1&msg=" + encodedMsg;
         }
     }
 
@@ -126,7 +131,7 @@ public class LoginController {
                 return "redirect:/index.html"; // 重定向到管理员首页
             } else {
                 // 非管理员跳转到报表门户
-                return "redirect:/static/portal/index.html";
+                return "redirect:/portal/index.html";
             }
         } catch (Exception e) {
             logger.error("获取用户信息失败：" + e.getMessage());

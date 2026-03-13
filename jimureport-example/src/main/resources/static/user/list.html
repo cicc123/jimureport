@@ -105,6 +105,7 @@
                 <li><a href="/jmreport/list">报表管理</a></li>
                 <li><a href="/formAssign/index">表单分配</a></li>
                 <li><a href="/user/list" class="active">用户管理</a></li>
+                <li><a href="/group/list">用户组管理</a></li>
                 <li><a href="/role/list">角色管理</a></li>
                 <li><a href="/permission/list">权限管理</a></li>
                 <li><a href="/logout">退出登录</a></li>
@@ -159,6 +160,7 @@
                                 <th onclick="sortBy('username')">用户名 <span id="sort-username" class="sort-icon"></span></th>
                                 <th onclick="sortBy('real_name')">姓名 <span id="sort-real_name" class="sort-icon"></span></th>
                                 <th onclick="sortBy('email')">邮箱 <span id="sort-email" class="sort-icon"></span></th>
+                                <th>用户组</th>
                                 <th>角色</th>
                                 <th onclick="sortBy('status')">状态 <span id="sort-status" class="sort-icon"></span></th>
                                 <th onclick="sortBy('create_time')">创建时间 <span id="sort-create_time" class="sort-icon"></span></th>
@@ -206,9 +208,9 @@
                             <input type="text" class="form-control" id="real_name" name="real_name" placeholder="请输入姓名">
                         </div>
                         <div class="form-group">
-                            <label for="tenant_id">租户</label>
+                            <label for="tenant_id">用户组</label>
                             <select class="form-control" id="tenant_id" name="tenant_id">
-                                <option value="1">默认租户</option>
+                                <option value="1">默认用户组</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -246,8 +248,41 @@
         // 页面加载时获取用户列表
         $(document).ready(function() {
             console.log('页面加载完成，开始获取用户列表');
+            loadUserGroups();
             getUserList();
         });
+        
+        // 加载用户组列表
+        function loadUserGroups() {
+            $.ajax({
+                url: '/api/group/list',
+                type: 'GET',
+                success: function(response) {
+                    console.log('用户组列表响应:', response);
+                    var groups = response.data || [];
+                    var select = $('#tenant_id');
+                    select.empty();
+                    
+                    if (groups.length > 0) {
+                        groups.forEach(function(group) {
+                            // 兼容驼峰和下划线命名
+                            var groupId = group.id || group.group_id;
+                            var groupName = group.groupName || group.group_name;
+                            select.append('<option value="' + groupId + '">' + groupName + '</option>');
+                        });
+                    } else {
+                        select.append('<option value="1">默认用户组</option>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('加载用户组失败:', error);
+                    // 使用默认选项
+                    var select = $('#tenant_id');
+                    select.empty();
+                    select.append('<option value="1">默认用户组</option>');
+                }
+            });
+        }
         
         // 全选/取消全选
         $('#selectAll').click(function() {
@@ -316,6 +351,7 @@
                                 var statusClass = user.status == 1 ? 'label-success' : 'label-danger';
                                 var email = user.email || '-';
                                 var roles = user.roles && user.roles.length > 0 ? user.roles.join(', ') : '-';
+                                var groupName = user.group_name || '默认用户组';
                                 
                                 var row = '<tr>';
                                 row += '<td><input type="checkbox" class="userCheck" value="' + user.id + '"></td>';
@@ -323,6 +359,7 @@
                                 row += '<td>' + user.username + '</td>';
                                 row += '<td>' + user.real_name + '</td>';
                                 row += '<td>' + email + '</td>';
+                                row += '<td>' + groupName + '</td>';
                                 row += '<td>' + roles + '</td>';
                                 row += '<td><span class="label ' + statusClass + '">' + statusText + '</span></td>';
                                 row += '<td>' + user.create_time + '</td>';
@@ -337,7 +374,7 @@
                                 $('#userTableBody').append(row);
                             });
                         } else {
-                            var row = '<tr><td colspan="9" class="text-center">暂无数据</td></tr>';
+                            var row = '<tr><td colspan="10" class="text-center">暂无数据</td></tr>';
                             $('#userTableBody').append(row);
                         }
                         
@@ -349,13 +386,13 @@
                         $('#sort-' + sortField).addClass('sort-' + sortOrder);
                     } else {
                         // 显示错误信息
-                        $('#userTableBody').html('<tr><td colspan="9" class="text-center text-danger">获取用户列表失败：' + response.msg + '</td></tr>');
+                        $('#userTableBody').html('<tr><td colspan="10" class="text-center text-danger">获取用户列表失败：' + response.msg + '</td></tr>');
                     }
                 },
                 error: function(xhr, status, error) {
                     console.error('API错误:', xhr, status, error);
                     // 显示错误信息
-                    $('#userTableBody').html('<tr><td colspan="9" class="text-center text-danger">获取用户列表失败，请检查网络连接: ' + error + '</td></tr>');
+                    $('#userTableBody').html('<tr><td colspan="10" class="text-center text-danger">获取用户列表失败，请检查网络连接: ' + error + '</td></tr>');
                 }
             });
         }

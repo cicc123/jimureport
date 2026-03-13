@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>权限管理中心</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-plus/dist/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/element-plus/dist/index.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', sans-serif; background: #f5f7fa; }
+        .app-container { display: flex; height: 100vh; }
+        .sidebar { width: 240px; background: #304156; color: #fff; }
+        .sidebar-header { padding: 20px; font-size: 18px; font-weight: bold; border-bottom: 1px solid #3a4a5e; }
+        .sidebar-menu { padding: 10px 0; }
+        .menu-item { padding: 12px 20px; cursor: pointer; transition: all 0.3s; }
+        .menu-item:hover, .menu-item.active { background: #263445; }
+        .menu-item i { margin-right: 10px; }
+        .main-content { flex: 1; display: flex; flex-direction: column; }
+        .header { height: 60px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
+        .content { flex: 1; padding: 20px; overflow: auto; }
+        .card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #ebeef5; }
+        .card-title { font-size: 16px; font-weight: bold; color: #303133; }
+        .tree-container { max-height: 500px; overflow: auto; }
+        .permission-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 15px; }
+        .permission-item { display: flex; align-items: center; padding: 10px; background: #f5f7fa; border-radius: 4px; }
+        .permission-item label { margin-left: 8px; }
+        .target-select { display: flex; gap: 10px; margin-bottom: 15px; }
+        .target-select .el-select { flex: 1; }
+        .filter-rule-box { background: #f5f7fa; padding: 15px; border-radius: 4px; margin-top: 10px; }
+        .filter-rule-box pre { margin: 10px 0; padding: 10px; background: #fff; border-radius: 4px; overflow-x: auto; }
+        .stats-row { display: flex; gap: 20px; margin-bottom: 20px; }
+        .stat-card { flex: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; padding: 20px; border-radius: 8px; }
+        .stat-card.green { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+        .stat-card.orange { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .stat-card.blue { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .stat-value { font-size: 28px; font-weight: bold; }
+        .stat-label { font-size: 14px; opacity: 0.8; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="app-container">
+            <div class="sidebar">
+                <div class="sidebar-header">🛡️ 权限管理中心</div>
+                <div class="sidebar-menu">
+                    <div class="menu-item" :class="{active: activeTab === 'overview'}" @click="activeTab = 'overview'">
+                        <i>📊</i> 概览
+                    </div>
+                    <div class="menu-item" :class="{active: activeTab === 'resource'}" @click="activeTab = 'resource'">
+                        <i>📁</i> 资源管理
+                    </div>
+                    <div class="menu-item" :class="{active: activeTab === 'role'}" @click="activeTab = 'role'">
+                        <i>👥</i> 角色权限
+                    </div>
+                    <div class="menu-item" :class="{active: activeTab === 'userGroup'}" @click="activeTab = 'userGroup'">
+                        <i>🏢</i> 用户组管理
+                    </div>
+                    <div class="menu-item" :class="{active: activeTab === 'dataPerm'}" @click="activeTab = 'dataPerm'">
+                        <i>🔒</i> 数据权限
+                    </div>
+                    <div class="menu-item" :class="{active: activeTab === 'assign'}" @click="activeTab = 'assign'">
+                        <i>⚙️</i> 权限分配
+                    </div>
+                    <div class="menu-item" :class="{active: activeTab === 'audit'}" @click="activeTab = 'audit'">
+                        <i>📝</i> 审计日志
+                    </div>
+                    <div class="menu-item" :class="{active: activeTab === 'import'}" @click="activeTab = 'import'">
+                        <i>📦</i> 导入导出
+                    </div>
+                </div>
+            </div>
+            
+            <div class="main-content">
+                <div class="header">
+                    <div>
+                        <span>当前用户: {{ currentUser }}</span>
+                        <span style="margin-left: 20px; color: #909399;">租户: {{ tenantName }}</span>
+                    </div>
+                    <div>
+                        <el-button type="primary" size="small" @click="refreshData">刷新数据</el-button>
+                    </div>
+                </div>
+                
+                <div class="content">
+                    <div v-if="activeTab === 'overview'">
+                        <div class="stats-row">
+                            <div class="stat-card">
+                                <div class="stat-value">{{ stats.userCount }}</div>
+                                <div class="stat-label">用户总数</div>
+                            </div>
+                            <div class="stat-card green">
+                                <div class="stat-value">{{ stats.roleCount }}</div>
+                                <div class="stat-label">角色总数</div>
+                            </div>
+                            <div class="stat-card orange">
+                                <div class="stat-value">{{ stats.resourceCount }}</div>
+                                <div class="stat-label">资源总数</div>
+                            </div>
+                            <div class="stat-card blue">
+                                <div class="stat-value">{{ stats.groupCount }}</div>
+                                <div class="stat-label">用户组总数</div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title">权限分配概览</span>
+                            </div>
+                            <el-table :data="permissionOverview" style="width: 100%">
+                                <el-table-column prop="resourceName" label="资源名称" width="200"></el-table-column>
+                                <el-table-column prop="userCount" label="用户授权数" width="120"></el-table-column>
+                                <el-table-column prop="roleCount" label="角色授权数" width="120"></el-table-column>
+                                <el-table-column prop="groupCount" label="用户组授权数" width="120"></el-table-column>
+                                <el-table-column prop="dataPermCount" label="数据权限数"></el-table-column>
+                            </el-table>
+                        </div>
+                    </div>
+                    
+                    <div v-if="activeTab === 'resource'">
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title">资源树形结构</span>
+                                <el-button type="primary" size="small" @click="showAddResource">添加资源</el-button>
+                            </div>
+                            <div class="tree-container">
+                                <el-tree
+                                    :data="resourceTree"
+                                    :props="{label: 'resourceName', children: 'children'}"
+                                    node-key="id"
+                                    default-expand-all
+                                    @node-click="handleResourceClick">
+                                    <template #default="{ node, data }">
+                                        <span>
+                                            <span v-if="data.resourceType === 1">📁</span>
+                                            <span v-else-if="data.resourceType === 2">📂</span>
+                                            <span v-else>📄</span>
+                                            {{ data.resourceName }}
+                                            <el-tag size="small" style="margin-left: 10px;">{{ getResourceTypeName(data.resourceType) }}</el-tag>
+                                        </span>
+                                    </template>
+                                </el-tree>
+                            </div>
+                        </div>
+                        
+                        <div class="card" v-if="selectedResource">
+                            <div class="card-header">
+                                <span class="card-title">资源权限配置 - {{ selectedResource.resourceName }}</span>
+                            </div>
+                            <el-tabs>
+                                <el-tab-pane label="功能权限">
+                                    <div class="target-select">
+                                        <el-select v-model="assignTargetType" placeholder="选择授权类型" style="width: 150px;">
+                                            <el-option :value="1" label="用户"></el-option>
+                                            <el-option :value="2" label="角色"></el-option>
+                                            <el-option :value="3" label="用户组"></el-option>
+                                        </el-select>
+                                        <el-select v-model="assignTargetId" placeholder="选择授权对象" filterable>
+                                            <el-option v-for="item in targetOptions" :key="item.id" :label="item.name" :value="item.id"></el-option>
+                                        </el-select>
+                                    </div>
+                                    <div class="permission-grid">
+                                        <div class="permission-item" v-for="perm in permissionTypes" :key="perm.value">
+                                            <el-checkbox v-model="perm.checked">{{ perm.label }}</el-checkbox>
+                                        </div>
+                                    </div>
+                                    <el-button type="primary" style="margin-top: 15px;" @click="assignPermission">分配权限</el-button>
+                                </el-tab-pane>
+                                <el-tab-pane label="已授权列表">
+                                    <el-table :data="resourcePermissions" style="width: 100%">
+                                        <el-table-column prop="targetType" label="授权类型" width="120">
+                                            <template #default="{row}">{{ getTargetTypeName(row.targetType) }}</template>
+                                        </el-table-column>
+                                        <el-table-column prop="target_name" label="授权对象" width="150"></el-table-column>
+                                        <el-table-column prop="permissionBits" label="权限位" width="100"></el-table-column>
+                                        <el-table-column label="权限详情">
+                                            <template #default="{row}">{{ getPermissionDetail(row.permissionBits) }}</template>
+                                        </el-table-column>
+                                        <el-table-column label="操作" width="100">
+                                            <template #default="{row}">
+                                                <el-button type="danger" size="small" link @click="revokePermission(row)">撤销</el-button>
+                                            </template>
+                                        </el-table-column>
+                                    </el-table>
+                                </el-tab-pane>
+                            </el-tabs>
+                        </div>
+                    </div>
+                    
+                    <div v-if="activeTab === 'dataPerm'">
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title">数据权限配置</span>
+                            </div>
+                            <el-form :model="dataPermForm" label-width="100px">
+                                <el-form-item label="选择资源">
+                                    <el-select v-model="dataPermForm.resourceId" placeholder="选择资源" filterable style="width: 100%;">
+                                        <el-option v-for="r in flatResources" :key="r.id" :label="r.resourceName" :value="r.id"></el-option>
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item label="授权类型">
+                                    <el-select v-model="dataPermForm.targetType" placeholder="选择类型">
+                                        <el-option :value="1" label="用户"></el-option>
+                                        <el-option :value="2" label="角色"></el-option>
+                                        <el-option :value="3" label="用户组"></el-option>
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item label="授权对象">
+                                    <el-select v-model="dataPermForm.targetId" placeholder="选择对象" filterable>
+                                        <el-option v-for="item in targetOptions" :key="item.id" :label="item.name" :value="item.id"></el-option>
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item label="过滤类型">
+                                    <el-select v-model="dataPermForm.filterType" placeholder="选择过滤类型">
+                                        <el-option :value="1" label="用户过滤"></el-option>
+                                        <el-option :value="2" label="部门过滤"></el-option>
+                                        <el-option :value="3" label="自定义过滤"></el-option>
+                                        <el-option :value="4" label="SQL过滤"></el-option>
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item label="过滤规则">
+                                    <el-input v-model="dataPermForm.filterRule" type="textarea" :rows="3" placeholder="输入过滤规则，如: username = '${username}'"></el-input>
+                                </el-form-item>
+                                <el-form-item>
+                                    <el-button type="primary" @click="saveDataPermission">保存数据权限</el-button>
+                                </el-form-item>
+                            </el-form>
+                            
+                            <div class="filter-rule-box">
+                                <h4>过滤规则示例</h4>
+                                <pre>
+用户过滤: username = '${username}' 或 user_id = '${userId}'
+部门过滤: dept_id = '${deptId}'
+自定义过滤: region = '${username}' AND status = 1
+SQL过滤: id IN (SELECT id FROM table WHERE condition)
+                                </pre>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div v-if="activeTab === 'assign'">
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title">批量权限分配</span>
+                            </div>
+                            <el-steps :active="assignStep" finish-status="success" style="margin-bottom: 30px;">
+                                <el-step title="选择授权主体"></el-step>
+                                <el-step title="选择授权范围"></el-step>
+                                <el-step title="配置权限"></el-step>
+                                <el-step title="确认分配"></el-step>
+                            </el-steps>
+                            
+                            <div v-if="assignStep === 0">
+                                <el-form label-width="100px">
+                                    <el-form-item label="授权类型">
+                                        <el-radio-group v-model="batchAssign.targetType">
+                                            <el-radio :label="1">用户</el-radio>
+                                            <el-radio :label="2">角色</el-radio>
+                                            <el-radio :label="3">用户组</el-radio>
+                                        </el-radio-group>
+                                    </el-form-item>
+                                    <el-form-item label="选择对象">
+                                        <el-select v-model="batchAssign.targetIds" multiple placeholder="选择授权对象" filterable style="width: 100%;">
+                                            <el-option v-for="item in targetOptions" :key="item.id" :label="item.name" :value="item.id"></el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                </el-form>
+                                <el-button type="primary" @click="assignStep = 1">下一步</el-button>
+                            </div>
+                            
+                            <div v-if="assignStep === 1">
+                                <el-tree
+                                    :data="resourceTree"
+                                    :props="{label: 'resourceName', children: 'children'}"
+                                    show-checkbox
+                                    node-key="id"
+                                    ref="resourceTreeRef"
+                                    default-expand-all>
+                                </el-tree>
+                                <el-button style="margin-top: 15px;" @click="assignStep = 0">上一步</el-button>
+                                <el-button type="primary" @click="assignStep = 2">下一步</el-button>
+                            </div>
+                            
+                            <div v-if="assignStep === 2">
+                                <div class="permission-grid">
+                                    <div class="permission-item" v-for="perm in batchPermissionTypes" :key="perm.value">
+                                        <el-checkbox v-model="perm.checked">{{ perm.label }}</el-checkbox>
+                                    </div>
+                                </div>
+                                <el-button style="margin-top: 15px;" @click="assignStep = 1">上一步</el-button>
+                                <el-button type="primary" @click="assignStep = 3">下一步</el-button>
+                            </div>
+                            
+                            <div v-if="assignStep === 3">
+                                <el-descriptions :column="1" border>
+                                    <el-descriptions-item label="授权类型">{{ getTargetTypeName(batchAssign.targetType) }}</el-descriptions-item>
+                                    <el-descriptions-item label="授权对象">{{ batchAssign.targetIds.length }} 个</el-descriptions-item>
+                                    <el-descriptions-item label="资源数量">{{ batchAssign.resourceIds.length }} 个</el-descriptions-item>
+                                    <el-descriptions-item label="权限配置">{{ getBatchPermissionDetail() }}</el-descriptions-item>
+                                </el-descriptions>
+                                <el-button style="margin-top: 15px;" @click="assignStep = 2">上一步</el-button>
+                                <el-button type="primary" @click="executeBatchAssign">确认分配</el-button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div v-if="activeTab === 'import'">
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title">权限配置导入导出</span>
+                            </div>
+                            <el-row :gutter="20">
+                                <el-col :span="12">
+                                    <el-card shadow="hover">
+                                        <template #header>
+                                            <span>导出权限配置</span>
+                                        </template>
+                                        <p>将当前租户的所有权限配置导出为JSON文件</p>
+                                        <el-button type="primary" @click="exportPermissions">导出配置</el-button>
+                                    </el-card>
+                                </el-col>
+                                <el-col :span="12">
+                                    <el-card shadow="hover">
+                                        <template #header>
+                                            <span>导入权限配置</span>
+                                        </template>
+                                        <el-upload
+                                            action="#"
+                                            :auto-upload="false"
+                                            :on-change="handleFileChange"
+                                            accept=".json">
+                                            <el-button type="primary">选择文件</el-button>
+                                        </el-upload>
+                                        <el-button type="success" style="margin-top: 10px;" @click="importPermissions" :disabled="!importFile">导入配置</el-button>
+                                    </el-card>
+                                </el-col>
+                            </el-row>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <el-dialog v-model="addResourceVisible" title="添加资源" width="500px">
+            <el-form :model="resourceForm" label-width="100px">
+                <el-form-item label="资源名称">
+                    <el-input v-model="resourceForm.resourceName"></el-input>
+                </el-form-item>
+                <el-form-item label="资源编码">
+                    <el-input v-model="resourceForm.resourceCode"></el-input>
+                </el-form-item>
+                <el-form-item label="资源类型">
+                    <el-select v-model="resourceForm.resourceType" style="width: 100%;">
+                        <el-option :value="1" label="菜单"></el-option>
+                        <el-option :value="2" label="目录"></el-option>
+                        <el-option :value="3" label="报表"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="父级资源">
+                    <el-select v-model="resourceForm.parentId" clearable placeholder="选择父级" style="width: 100%;">
+                        <el-option v-for="r in flatResources" :key="r.id" :label="r.resourceName" :value="r.id"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="路径">
+                    <el-input v-model="resourceForm.path"></el-input>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="addResourceVisible = false">取消</el-button>
+                <el-button type="primary" @click="saveResource">保存</el-button>
+            </template>
+        </el-dialog>
+    </div>
+
+    <script>
+        const { createApp, ref, reactive, computed, watch, onMounted } = Vue;
+        
+        const app = createApp({
+            setup() {
+                const activeTab = ref('overview');
+                const currentUser = ref('admin');
+                const tenantName = ref('默认租户');
+                const selectedResource = ref(null);
+                const addResourceVisible = ref(false);
+                const assignStep = ref(0);
+                const importFile = ref(null);
+                
+                const stats = reactive({
+                    userCount: 0,
+                    roleCount: 0,
+                    resourceCount: 0,
+                    groupCount: 0
+                });
+                
+                const resourceTree = ref([]);
+                const flatResources = computed(() => {
+                    const result = [];
+                    const flatten = (nodes) => {
+                        nodes.forEach(node => {
+                            result.push(node);
+                            if (node.children) flatten(node.children);
+                        });
+                    };
+                    flatten(resourceTree.value);
+                    return result;
+                });
+                
+                const permissionTypes = ref([
+                    { value: 1, label: '查看', checked: false },
+                    { value: 2, label: '编辑', checked: false },
+                    { value: 4, label: '删除', checked: false },
+                    { value: 8, label: '导出', checked: false },
+                    { value: 16, label: '分配', checked: false }
+                ]);
+                
+                const batchPermissionTypes = ref([...permissionTypes.value]);
+                
+                const assignTargetType = ref(1);
+                const assignTargetId = ref('');
+                const targetOptions = ref([]);
+                
+                const resourcePermissions = ref([]);
+                const permissionOverview = ref([]);
+                
+                const dataPermForm = reactive({
+                    resourceId: '',
+                    targetType: 1,
+                    targetId: '',
+                    filterType: 1,
+                    filterRule: ''
+                });
+                
+                const batchAssign = reactive({
+                    targetType: 1,
+                    targetIds: [],
+                    resourceIds: [],
+                    permissionBits: 0
+                });
+                
+                const resourceForm = reactive({
+                    resourceName: '',
+                    resourceCode: '',
+                    resourceType: 2,
+                    parentId: '',
+                    path: ''
+                });
+                
+                const getResourceTypeName = (type) => {
+                    const types = { 1: '菜单', 2: '目录', 3: '报表' };
+                    return types[type] || '未知';
+                };
+                
+                const getTargetTypeName = (type) => {
+                    const types = { 1: '用户', 2: '角色', 3: '用户组' };
+                    return types[type] || '未知';
+                };
+                
+                const getPermissionDetail = (bits) => {
+                    const names = [];
+                    if (bits & 1) names.push('查看');
+                    if (bits & 2) names.push('编辑');
+                    if (bits & 4) names.push('删除');
+                    if (bits & 8) names.push('导出');
+                    if (bits & 16) names.push('分配');
+                    return names.join(', ') || '无权限';
+                };
+                
+                const getBatchPermissionDetail = () => {
+                    let bits = 0;
+                    batchPermissionTypes.value.forEach(p => {
+                        if (p.checked) bits |= p.value;
+                    });
+                    return getPermissionDetail(bits);
+                };
+                
+                const loadStats = async () => {
+                    try {
+                        const [users, roles, resources, groups] = await Promise.all([
+                            axios.get('/api/user/list'),
+                            axios.get('/api/role/list'),
+                            axios.get('/api/permission/resource/tree'),
+                            axios.get('/api/group/list')
+                        ]);
+                        // 用户列表: {data: {data: {list: [...]}}}
+                        const userList = users.data.data?.data?.list || users.data.data?.list || [];
+                        stats.userCount = userList.length;
+                        // 角色列表: {data: [...]}
+                        stats.roleCount = (roles.data.data || []).length;
+                        stats.resourceCount = flatResources.value.length;
+                        // 用户组列表: {data: [...]}
+                        stats.groupCount = (groups.data.data || []).length;
+                    } catch (e) {
+                        console.error('加载统计数据失败', e);
+                    }
+                };
+                
+                const loadResourceTree = async () => {
+                    try {
+                        const res = await axios.get('/api/permission/resource/tree');
+                        resourceTree.value = res.data.data || [];
+                    } catch (e) {
+                        console.error('加载资源树失败', e);
+                    }
+                };
+                
+                const loadTargetOptions = async () => {
+                    try {
+                        // 获取当前选择的授权类型（优先使用批量分配的类型）
+                        const currentType = batchAssign.targetType || assignTargetType.value;
+                        let url = '';
+                        switch (currentType) {
+                            case 1: url = '/api/user/list'; break;
+                            case 2: url = '/api/role/list'; break;
+                            case 3: url = '/api/group/list'; break;
+                        }
+                        console.log('加载目标选项, 类型:', currentType, 'URL:', url);
+                        const res = await axios.get(url);
+                        console.log('API响应:', res.data);
+                        let list = [];
+                        
+                        // 处理不同的数据格式
+                        if (currentType === 1) {
+                            // 用户列表: {code: 200, data: {data: {list: [...]}}}
+                            list = res.data.data?.data?.list || res.data.data?.list || [];
+                            console.log('用户列表数据:', list.length, '条');
+                        } else if (currentType === 2) {
+                            // 角色列表: {code: 200, data: [...]}
+                            list = res.data.data || [];
+                            console.log('角色列表数据:', list.length, '条');
+                        } else {
+                            // 用户组列表: {code: 200, data: [...]}
+                            list = res.data.data || [];
+                            console.log('用户组列表数据:', list.length, '条');
+                        }
+                        
+                        targetOptions.value = list.map(item => ({
+                            id: item.id,
+                            // 兼容不同的字段命名
+                            name: item.username || item.real_name || item.roleName || item.role_name || item.groupName || item.group_name || item.name
+                        }));
+                        console.log('目标选项:', targetOptions.value.length, '条');
+                    } catch (e) {
+                        console.error('加载目标选项失败', e);
+                    }
+                };
+                
+                const handleResourceClick = async (data) => {
+                    selectedResource.value = data;
+                    try {
+                        const res = await axios.get('/api/permission/resource/permissions', {
+                            params: { resourceId: data.id }
+                        });
+                        resourcePermissions.value = res.data.data || [];
+                    } catch (e) {
+                        console.error('加载资源权限失败', e);
+                    }
+                };
+                
+                const assignPermission = async () => {
+                    if (!selectedResource.value || !assignTargetId.value) {
+                        ElementPlus.ElMessage.warning('请选择资源和授权对象');
+                        return;
+                    }
+                    let bits = 0;
+                    permissionTypes.value.forEach(p => {
+                        if (p.checked) bits |= p.value;
+                    });
+                    try {
+                        await axios.post('/api/permission/resource/assign', {
+                            resourceId: selectedResource.value.id,
+                            targetType: assignTargetType.value,
+                            targetId: assignTargetId.value,
+                            permissionBits: bits
+                        });
+                        ElementPlus.ElMessage.success('权限分配成功');
+                        handleResourceClick(selectedResource.value);
+                    } catch (e) {
+                        ElementPlus.ElMessage.error('权限分配失败');
+                    }
+                };
+                
+                const revokePermission = async (row) => {
+                    try {
+                        await axios.post('/api/permission/resource/revoke', {
+                            resourceId: selectedResource.value.id,
+                            targetType: row.targetType,
+                            targetId: row.targetId
+                        });
+                        ElementPlus.ElMessage.success('权限撤销成功');
+                        handleResourceClick(selectedResource.value);
+                    } catch (e) {
+                        ElementPlus.ElMessage.error('权限撤销失败');
+                    }
+                };
+                
+                const saveDataPermission = async () => {
+                    try {
+                        await axios.post('/api/permission/data/set', dataPermForm);
+                        ElementPlus.ElMessage.success('数据权限保存成功');
+                    } catch (e) {
+                        ElementPlus.ElMessage.error('数据权限保存失败');
+                    }
+                };
+                
+                const executeBatchAssign = async () => {
+                    let bits = 0;
+                    batchPermissionTypes.value.forEach(p => {
+                        if (p.checked) bits |= p.value;
+                    });
+                    try {
+                        for (const targetId of batchAssign.targetIds) {
+                            await axios.post('/api/permission/resource/batchAssign', {
+                                resourceIds: batchAssign.resourceIds,
+                                targetType: batchAssign.targetType,
+                                targetId: targetId,
+                                permissionBits: bits
+                            });
+                        }
+                        ElementPlus.ElMessage.success('批量权限分配成功');
+                        assignStep.value = 0;
+                    } catch (e) {
+                        ElementPlus.ElMessage.error('批量权限分配失败');
+                    }
+                };
+                
+                const exportPermissions = async () => {
+                    try {
+                        const res = await axios.get('/api/permission/export');
+                        const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `permission_config_${new Date().toISOString().slice(0,10)}.json`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        ElementPlus.ElMessage.success('导出成功');
+                    } catch (e) {
+                        ElementPlus.ElMessage.error('导出失败');
+                    }
+                };
+                
+                const handleFileChange = (file) => {
+                    importFile.value = file.raw;
+                };
+                
+                const importPermissions = async () => {
+                    if (!importFile.value) return;
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        try {
+                            await axios.post('/api/permission/import', {
+                                jsonData: e.target.result
+                            });
+                            ElementPlus.ElMessage.success('导入成功');
+                            refreshData();
+                        } catch (err) {
+                            ElementPlus.ElMessage.error('导入失败');
+                        }
+                    };
+                    reader.readAsText(importFile.value);
+                };
+                
+                const showAddResource = () => {
+                    addResourceVisible.value = true;
+                };
+                
+                const saveResource = async () => {
+                    ElementPlus.ElMessage.success('资源保存成功');
+                    addResourceVisible.value = false;
+                };
+                
+                const refreshData = () => {
+                    loadStats();
+                    loadResourceTree();
+                };
+                
+                watch(assignTargetType, () => {
+                    loadTargetOptions();
+                });
+                
+                // 监听批量权限分配的类型变化
+                watch(() => batchAssign.targetType, () => {
+                    loadTargetOptions();
+                });
+                
+                watch(activeTab, (val) => {
+                    if (val === 'assign') {
+                        assignStep.value = 0;
+                        loadTargetOptions();
+                    }
+                });
+                
+                onMounted(() => {
+                    loadStats();
+                    loadResourceTree();
+                    loadTargetOptions();
+                });
+                
+                return {
+                    activeTab,
+                    currentUser,
+                    tenantName,
+                    stats,
+                    resourceTree,
+                    flatResources,
+                    selectedResource,
+                    permissionTypes,
+                    batchPermissionTypes,
+                    assignTargetType,
+                    assignTargetId,
+                    targetOptions,
+                    resourcePermissions,
+                    permissionOverview,
+                    dataPermForm,
+                    batchAssign,
+                    assignStep,
+                    importFile,
+                    addResourceVisible,
+                    resourceForm,
+                    getResourceTypeName,
+                    getTargetTypeName,
+                    getPermissionDetail,
+                    getBatchPermissionDetail,
+                    handleResourceClick,
+                    assignPermission,
+                    revokePermission,
+                    saveDataPermission,
+                    executeBatchAssign,
+                    exportPermissions,
+                    handleFileChange,
+                    importPermissions,
+                    showAddResource,
+                    saveResource,
+                    refreshData
+                };
+            }
+        });
+        
+        app.use(ElementPlus);
+        app.mount('#app');
+    </script>
+</body>
+</html>

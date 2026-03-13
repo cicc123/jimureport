@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>报表权限分配</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .topbar {
+            background-color: #343a40;
+            color: white;
+            padding: 0 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .topbar .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+        }
+        .topbar .logo {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .topbar .menu {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .topbar .menu li {
+            margin-left: 20px;
+        }
+        .topbar .menu a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+        }
+        .topbar .menu a:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+        .content {
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            background: white;
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-body {
+            padding: 20px;
+        }
+        .panel-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+        .panel {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: white;
+        }
+        .panel-header {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 15px;
+            font-weight: bold;
+        }
+        .panel-body {
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .list-group-item {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .list-group-item:hover {
+            background-color: #f8f9fa;
+        }
+        .list-group-item.selected {
+            background-color: #007bff;
+            color: white;
+        }
+        .list-group-item .badge {
+            float: right;
+        }
+        .btn-group-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .permission-badge {
+            margin-right: 5px;
+        }
+        .search-box {
+            margin-bottom: 15px;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+        }
+        .permission-list {
+            margin-top: 10px;
+        }
+        .permission-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .permission-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="container">
+            <div class="logo">积木报表 - 权限管理</div>
+            <ul class="menu">
+                <li><a href="/index.html">首页</a></li>
+                <li><a href="/jmreport/list">报表管理</a></li>
+                <li><a href="/permission/report.html">权限分配</a></li>
+                <li><a href="/user/list">用户管理</a></li>
+                <li><a href="/group/list.html">用户组管理</a></li>
+                <li><a href="/logout">退出登录</a></li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="content">
+        <div class="card">
+            <div class="card-header">
+                <span>报表权限分配</span>
+                <div>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="refreshAll()">刷新</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="panel-container">
+                    <div class="panel">
+                        <div class="panel-header">选择报表</div>
+                        <div class="panel-body">
+                            <div class="search-box">
+                                <input type="text" id="reportSearch" placeholder="搜索报表..." oninput="filterReports()">
+                            </div>
+                            <ul class="list-group" id="reportList">
+                                <li class="list-group-item text-center text-muted">加载中...</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="panel">
+                        <div class="panel-header">选择目标</div>
+                        <div class="panel-body">
+                            <ul class="nav nav-tabs mb-3" id="targetTab">
+                                <li class="nav-item">
+                                    <a class="nav-link active" href="#" onclick="switchTargetTab('user')">用户</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" onclick="switchTargetTab('group')">用户组</a>
+                                </li>
+                            </ul>
+                            <div class="search-box">
+                                <input type="text" id="targetSearch" placeholder="搜索..." oninput="filterTargets()">
+                            </div>
+                            <ul class="list-group" id="targetList">
+                                <li class="list-group-item text-center text-muted">加载中...</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="panel">
+                        <div class="panel-header">选择权限</div>
+                        <div class="panel-body">
+                            <div class="form-group">
+                                <label>权限类型：</label>
+                                <select class="form-control" id="permissionType">
+                                    <option value="view">查看权限</option>
+                                    <option value="edit">编辑权限</option>
+                                    <option value="delete">删除权限</option>
+                                </select>
+                            </div>
+                            
+                            <div class="btn-group-actions">
+                                <button class="btn btn-success btn-block" onclick="assignPermission()">
+                                    分配权限
+                                </button>
+                            </div>
+                            <div class="btn-group-actions">
+                                <button class="btn btn-danger btn-block" onclick="revokePermission()">
+                                    撤销权限
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <span>当前报表权限</span>
+                <span id="currentReportName" class="text-muted"></span>
+            </div>
+            <div class="card-body">
+                <div id="permissionList">
+                    <p class="text-muted text-center">请先选择一个报表查看其权限分配情况</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast-container"></div>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        var reports = [];
+        var users = [];
+        var groups = [];
+        var selectedReport = null;
+        var selectedTargets = [];
+        var currentTargetTab = 'user';
+        
+        $(document).ready(function() {
+            loadReports();
+            loadUsers();
+            loadGroups();
+        });
+        
+        function loadReports() {
+            $.ajax({
+                url: '/api/portal/admin/reports',
+                type: 'GET',
+                success: function(response) {
+                    if (response.code === 200) {
+                        reports = response.data || [];
+                        renderReports();
+                    } else {
+                        showToast('加载报表失败: ' + response.message, 'danger');
+                    }
+                },
+                error: function() {
+                    showToast('加载报表失败', 'danger');
+                }
+            });
+        }
+        
+        function loadUsers() {
+            console.log('开始加载用户列表...');
+            $.ajax({
+                url: '/api/user/list',
+                type: 'GET',
+                success: function(response) {
+                    console.log('用户列表API响应:', response);
+                    console.log('response.code:', response.code, '类型:', typeof response.code);
+                    if (response.code === 200 || response.success) {
+                        // 用户列表: {code: 200, data: {data: {list: [...]}}}
+                        // response.data = {data: {list: [...]}}
+                        // response.data.data = {list: [...]}
+                        // response.data.data.list = [...]
+                        var responseData = response.data;
+                        console.log('responseData:', responseData);
+                        
+                        if (responseData && responseData.data && responseData.data.list) {
+                            users = responseData.data.list;
+                        } else if (responseData && responseData.list) {
+                            users = responseData.list;
+                        } else if (Array.isArray(responseData)) {
+                            users = responseData;
+                        } else {
+                            users = [];
+                        }
+                        
+                        console.log('用户列表加载完成:', users.length, '条, 类型:', typeof users, Array.isArray(users));
+                        if (currentTargetTab === 'user') {
+                            renderTargets();
+                        }
+                    } else {
+                        console.error('用户列表API返回错误:', response.msg || response.message);
+                        showToast('加载用户失败: ' + (response.msg || response.message), 'danger');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('加载用户失败:', xhr.status, xhr.responseText);
+                    showToast('加载用户失败: ' + error, 'danger');
+                }
+            });
+        }
+        
+        function loadGroups() {
+            console.log('开始加载用户组列表...');
+            $.ajax({
+                url: '/api/group/list',
+                type: 'GET',
+                success: function(response) {
+                    console.log('用户组列表API响应:', response);
+                    console.log('response.code:', response.code, '类型:', typeof response.code);
+                    if (response.code === 200 || response.success) {
+                        // 用户组列表: {code: 200, data: [...]}
+                        var responseData = response.data;
+                        console.log('responseData:', responseData);
+                        
+                        if (Array.isArray(responseData)) {
+                            groups = responseData;
+                        } else if (responseData && responseData.data && Array.isArray(responseData.data)) {
+                            groups = responseData.data;
+                        } else if (responseData && responseData.list && Array.isArray(responseData.list)) {
+                            groups = responseData.list;
+                        } else {
+                            groups = [];
+                        }
+                        
+                        console.log('用户组列表加载完成:', groups.length, '条, 类型:', typeof groups, Array.isArray(groups));
+                        if (currentTargetTab === 'group') {
+                            renderTargets();
+                        }
+                    } else {
+                        console.error('用户组列表API返回错误:', response.msg || response.message);
+                        showToast('加载用户组失败: ' + (response.msg || response.message), 'danger');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('加载用户组失败:', xhr.status, xhr.responseText);
+                    showToast('加载用户组失败: ' + error, 'danger');
+                }
+            });
+        }
+        
+        function renderReports() {
+            var html = '';
+            var keyword = $('#reportSearch').val().toLowerCase();
+            var filtered = reports.filter(function(r) {
+                return (r.name && r.name.toLowerCase().indexOf(keyword) >= 0) ||
+                       (r.code && r.code.toLowerCase().indexOf(keyword) >= 0);
+            });
+            
+            if (filtered.length === 0) {
+                html = '<li class="list-group-item text-center text-muted">暂无报表</li>';
+            } else {
+                filtered.forEach(function(report) {
+                    var selected = selectedReport && selectedReport.id === report.id ? 'selected' : '';
+                    html += '<li class="list-group-item ' + selected + '" onclick="selectReport(\'' + report.id + '\')">';
+                    html += '<div>' + (report.name || '未命名') + '</div>';
+                    html += '<small class="text-muted">' + (report.code || '') + '</small>';
+                    if (report.permission_count > 0) {
+                        html += '<span class="badge badge-info">' + report.permission_count + '个权限</span>';
+                    }
+                    html += '</li>';
+                });
+            }
+            $('#reportList').html(html);
+        }
+        
+        function renderTargets() {
+            console.log('renderTargets called, currentTargetTab:', currentTargetTab);
+            console.log('users:', users, 'groups:', groups);
+            
+            var html = '';
+            var keyword = $('#targetSearch').val() ? $('#targetSearch').val().toLowerCase() : '';
+            var data = currentTargetTab === 'user' ? users : groups;
+            
+            console.log('data:', data, 'Array.isArray(data):', Array.isArray(data));
+            
+            // 确保data是数组
+            if (!Array.isArray(data)) {
+                console.error('data is not an array:', data);
+                data = [];
+            }
+            
+            var filtered = data.filter(function(item) {
+                if (!item) return false;
+                var name = currentTargetTab === 'user' ? 
+                    (item.username || '') + ' ' + (item.real_name || '') : 
+                    (item.groupName || item.group_name || '');
+                return name.toLowerCase().indexOf(keyword) >= 0;
+            });
+            
+            if (filtered.length === 0) {
+                html = '<li class="list-group-item text-center text-muted">暂无数据</li>';
+            } else {
+                filtered.forEach(function(item) {
+                    var id = item.id || '';
+                    var name = currentTargetTab === 'user' ? 
+                        (item.real_name || item.username || '未知') : 
+                        (item.groupName || item.group_name || '未知');
+                    var sub = currentTargetTab === 'user' ? (item.username || '') : 
+                        (item.group_type === 1 ? '管理员组' : '普通用户组');
+                    var selected = selectedTargets.indexOf(id) >= 0 ? 'selected' : '';
+                    
+                    html += '<li class="list-group-item ' + selected + '" onclick="toggleTarget(\'' + id + '\')">';
+                    html += '<div>' + name + '</div>';
+                    html += '<small class="text-muted">' + sub + '</small>';
+                    html += '</li>';
+                });
+            }
+            $('#targetList').html(html);
+        }
+        
+        function filterReports() {
+            renderReports();
+        }
+        
+        function filterTargets() {
+            renderTargets();
+        }
+        
+        function selectReport(reportId) {
+            selectedReport = reports.find(function(r) { return r.id === reportId; });
+            renderReports();
+            loadPermissions(reportId);
+            $('#currentReportName').text(' - ' + (selectedReport.name || '未命名'));
+        }
+        
+        function toggleTarget(targetId) {
+            var index = selectedTargets.indexOf(targetId);
+            if (index >= 0) {
+                selectedTargets.splice(index, 1);
+            } else {
+                selectedTargets.push(targetId);
+            }
+            renderTargets();
+        }
+        
+        function switchTargetTab(tab) {
+            currentTargetTab = tab;
+            selectedTargets = [];
+            $('#targetTab .nav-link').removeClass('active');
+            $('#targetTab .nav-link').eq(tab === 'user' ? 0 : 1).addClass('active');
+            renderTargets();
+        }
+        
+        function loadPermissions(reportId) {
+            $.ajax({
+                url: '/api/permission/report/list/' + reportId,
+                type: 'GET',
+                success: function(response) {
+                    if (response.code === 200) {
+                        renderPermissions(response.data);
+                    } else {
+                        $('#permissionList').html('<p class="text-danger text-center">' + response.message + '</p>');
+                    }
+                },
+                error: function() {
+                    $('#permissionList').html('<p class="text-danger text-center">加载权限失败</p>');
+                }
+            });
+        }
+        
+        function renderPermissions(permissions) {
+            if (!permissions || permissions.length === 0) {
+                $('#permissionList').html('<p class="text-muted text-center">该报表暂无权限分配</p>');
+                return;
+            }
+            
+            var html = '<div class="permission-list">';
+            permissions.forEach(function(perm) {
+                var typeLabel = perm.target_type === 1 ? '用户' : '用户组';
+                var typeBadge = perm.target_type === 1 ? 'primary' : 'success';
+                var permLabel = getPermissionLabel(perm.permission_type);
+                
+                html += '<div class="permission-item">';
+                html += '<div>';
+                html += '<span class="badge badge-' + typeBadge + '">' + typeLabel + '</span> ';
+                html += '<span>' + (perm.target_name || '未知') + '</span>';
+                html += '</div>';
+                html += '<div>';
+                html += '<span class="badge badge-info">' + permLabel + '</span> ';
+                html += '<button class="btn btn-sm btn-outline-danger" onclick="removePermission(\'' + perm.id + '\', \'' + perm.report_id + '\', ' + perm.target_type + ', \'' + perm.target_id + '\', \'' + perm.permission_type + '\')">';
+                html += '<i class="fas fa-times"></i> 移除';
+                html += '</button>';
+                html += '</div>';
+                html += '</div>';
+            });
+            html += '</div>';
+            $('#permissionList').html(html);
+        }
+        
+        function getPermissionLabel(type) {
+            var labels = {
+                'view': '查看',
+                'edit': '编辑',
+                'delete': '删除'
+            };
+            return labels[type] || type;
+        }
+        
+        function assignPermission() {
+            if (!selectedReport) {
+                showToast('请先选择报表', 'warning');
+                return;
+            }
+            if (selectedTargets.length === 0) {
+                showToast('请选择至少一个目标', 'warning');
+                return;
+            }
+            
+            var data = {
+                reportId: selectedReport.id,
+                targetType: currentTargetTab === 'user' ? 1 : 2,
+                targetIds: selectedTargets,
+                permissionType: $('#permissionType').val()
+            };
+            
+            $.ajax({
+                url: '/api/permission/report/assign',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function(response) {
+                    if (response.code === 200) {
+                        showToast('权限分配成功', 'success');
+                        loadPermissions(selectedReport.id);
+                        selectedTargets = [];
+                        renderTargets();
+                    } else {
+                        showToast('分配失败: ' + response.message, 'danger');
+                    }
+                },
+                error: function() {
+                    showToast('分配失败', 'danger');
+                }
+            });
+        }
+        
+        function revokePermission() {
+            if (!selectedReport) {
+                showToast('请先选择报表', 'warning');
+                return;
+            }
+            if (selectedTargets.length === 0) {
+                showToast('请选择至少一个目标', 'warning');
+                return;
+            }
+            
+            var data = {
+                reportId: selectedReport.id,
+                targetType: currentTargetTab === 'user' ? 1 : 2,
+                targetIds: selectedTargets,
+                permissionType: $('#permissionType').val()
+            };
+            
+            $.ajax({
+                url: '/api/permission/report/revoke',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function(response) {
+                    if (response.code === 200) {
+                        showToast('权限撤销成功', 'success');
+                        loadPermissions(selectedReport.id);
+                        selectedTargets = [];
+                        renderTargets();
+                    } else {
+                        showToast('撤销失败: ' + response.message, 'danger');
+                    }
+                },
+                error: function() {
+                    showToast('撤销失败', 'danger');
+                }
+            });
+        }
+        
+        function removePermission(permId, reportId, targetType, targetId, permissionType) {
+            var data = {
+                reportId: reportId,
+                targetType: targetType,
+                targetIds: [targetId],
+                permissionType: permissionType
+            };
+            
+            $.ajax({
+                url: '/api/permission/report/revoke',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function(response) {
+                    if (response.code === 200) {
+                        showToast('权限移除成功', 'success');
+                        loadPermissions(reportId);
+                    } else {
+                        showToast('移除失败: ' + response.message, 'danger');
+                    }
+                },
+                error: function() {
+                    showToast('移除失败', 'danger');
+                }
+            });
+        }
+        
+        function refreshAll() {
+            selectedReport = null;
+            selectedTargets = [];
+            loadReports();
+            loadUsers();
+            loadGroups();
+            $('#permissionList').html('<p class="text-muted text-center">请先选择一个报表查看其权限分配情况</p>');
+            $('#currentReportName').text('');
+        }
+        
+        function showToast(message, type) {
+            var toast = $('<div class="toast" role="alert" style="min-width: 250px;">')
+                .addClass('toast-' + (type === 'danger' ? 'error' : type))
+                .html('<div class="toast-body">' + message + '</div>');
+            
+            $('.toast-container').append(toast);
+            toast.toast({ delay: 3000 });
+            toast.toast('show');
+            
+            setTimeout(function() {
+                toast.remove();
+            }, 3500);
+        }
+    </script>
+</body>
+</html>

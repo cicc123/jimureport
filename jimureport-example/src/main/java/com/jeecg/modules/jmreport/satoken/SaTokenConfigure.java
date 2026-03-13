@@ -47,9 +47,15 @@ public class SaTokenConfigure implements WebMvcConfigurer {
                 .addExclude("/logout")
                 .addExclude("/index.html")
                 .addExclude("/user/**")
+                .addExclude("/group/**")
                 .addExclude("/role/**")
                 .addExclude("/permission/**")
                 .addExclude("/formAssign/**")
+                .addExclude("/static/**")
+                .addExclude("/portal/**")
+                .addExclude("/api/group/list")
+                .addExclude("/api/group/list/**")
+                .addExclude("/api/group/current")
                 
 
                 // 认证函数: 每次请求执行

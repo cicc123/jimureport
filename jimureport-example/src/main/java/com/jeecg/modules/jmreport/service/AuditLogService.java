@@ -27,13 +27,16 @@ public class AuditLogService {
         String sql = "INSERT INTO jimu_audit_log (id, user_id, username, tenant_id, operation, content, ip, create_time) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)";
         
         try {
-            // 尝试获取用户ID
-            String userId = null;
+            // 尝试获取用户ID，如果不存在使用占位符
+            String userId = "unknown";
             try {
                 String userIdSql = "SELECT id FROM jimu_user WHERE username = ?";
-                userId = jdbcTemplate.queryForObject(userIdSql, String.class, username);
+                List<String> results = jdbcTemplate.queryForList(userIdSql, String.class, username);
+                if (!results.isEmpty()) {
+                    userId = results.get(0);
+                }
             } catch (Exception e) {
-                // 用户不存在，使用空值
+                // 用户不存在，使用unknown
             }
             
             jdbcTemplate.update(sql, id, userId, username, "1", "登录", success ? "登录成功" : "登录失败: " + message, ip);
@@ -136,22 +139,31 @@ public class AuditLogService {
 
     /**
      * 记录表单操作日志
+     * @param formId 表单ID
+     * @param operation 操作类型
+     * @param content 操作内容
+     * @param ip IP地址
      */
-    public void logFormOperation(String username, String ip, String operation, String content) {
+    public void logFormOperation(String formId, String operation, String content, String ip) {
         String id = UUID.randomUUID().toString();
         String sql = "INSERT INTO jimu_audit_log (id, user_id, username, tenant_id, operation, content, ip, create_time) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)";
         
         try {
-            // 获取用户ID
+            String username = "anonymous";
             String userId = null;
+            
             try {
-                String userIdSql = "SELECT id FROM jimu_user WHERE username = ?";
-                userId = jdbcTemplate.queryForObject(userIdSql, String.class, username);
+                if (StpUtil.isLogin()) {
+                    username = StpUtil.getLoginIdAsString();
+                    String userIdSql = "SELECT id FROM jimu_user WHERE username = ?";
+                    userId = jdbcTemplate.queryForObject(userIdSql, String.class, username);
+                }
             } catch (Exception e) {
-                // 用户不存在，使用空值
+                logger.warn("获取用户信息失败: {}", e.getMessage());
             }
             
-            jdbcTemplate.update(sql, id, userId, username, "1", operation, content, ip);
+            String fullContent = "表单ID: " + formId + " - " + content;
+            jdbcTemplate.update(sql, id, userId, username, "1", operation, fullContent, ip);
         } catch (Exception e) {
             logger.error("记录表单操作日志失败：", e);
         }

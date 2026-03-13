@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户组管理</title>
+    <link rel="stylesheet" href="/login/cdn/bootstrap.min.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .topbar {
+            background-color: #343a40;
+            color: white;
+            padding: 0 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .topbar .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+        }
+        .topbar .logo {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .topbar .menu {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .topbar .menu li {
+            margin-left: 20px;
+        }
+        .topbar .menu a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+        }
+        .topbar .menu a:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+        .content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            background: white;
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-body {
+            padding: 20px;
+        }
+        .table th, .table td {
+            vertical-align: middle;
+        }
+        .badge-admin {
+            background-color: #dc3545;
+        }
+        .badge-normal {
+            background-color: #28a745;
+        }
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+        }
+        .modal-body {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="container">
+            <div class="logo">积木报表 - 用户组管理</div>
+            <ul class="menu">
+                <li><a href="/index.html">首页</a></li>
+                <li><a href="/jmreport/list">报表管理</a></li>
+                <li><a href="/permission/report.html">权限分配</a></li>
+                <li><a href="/user/list">用户管理</a></li>
+                <li><a href="/group/list.html">用户组管理</a></li>
+                <li><a href="/logout">退出登录</a></li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="content">
+        <div class="card">
+            <div class="card-header">
+                <span>用户组列表</span>
+                <button class="btn btn-primary btn-sm" onclick="showCreateModal()">新建用户组</button>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>用户组名称</th>
+                            <th>用户组编码</th>
+                            <th>类型</th>
+                            <th>描述</th>
+                            <th>成员数量</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="groupList">
+                        <tr>
+                            <td colspan="7" class="text-center">加载中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal fade" id="groupModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">新建用户组</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="groupForm">
+                        <input type="hidden" id="groupId">
+                        <div class="form-group">
+                            <label>用户组名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="groupName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>用户组编码 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="groupCode" required>
+                            <small class="text-muted">唯一标识，创建后不可修改</small>
+                        </div>
+                        <div class="form-group">
+                            <label>用户组类型</label>
+                            <select class="form-control" id="groupType">
+                                <option value="2">普通用户组</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>描述</label>
+                            <textarea class="form-control" id="description" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>状态</label>
+                            <select class="form-control" id="status">
+                                <option value="1">启用</option>
+                                <option value="0">禁用</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveGroup()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal fade" id="memberModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">管理成员 - <span id="memberGroupName"></span></h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>可选用户</h6>
+                            <input type="text" class="form-control mb-2" id="userSearch" placeholder="搜索用户..." oninput="filterAvailableUsers()">
+                            <ul class="list-group" id="availableUsers" style="max-height: 300px; overflow-y: auto;">
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>当前成员</h6>
+                            <ul class="list-group" id="currentMembers" style="max-height: 300px; overflow-y: auto;">
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast-container"></div>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        var groups = [];
+        var users = [];
+        var currentGroupId = null;
+        
+        $(document).ready(function() {
+            loadGroups();
+            loadUsers();
+        });
+        
+        function loadGroups() {
+            $.ajax({
+                url: '/api/group/list',
+                type: 'GET',
+                success: function(response) {
+                    if (response.code === 200) {
+                        groups = response.data || [];
+                        renderGroups();
+                    } else {
+                        showToast('加载用户组失败: ' + response.message, 'danger');
+                    }
+                },
+                error: function() {
+                    showToast('加载用户组失败', 'danger');
+                }
+            });
+        }
+        
+        function loadUsers() {
+            $.ajax({
+                url: '/api/user/list',
+                type: 'GET',
+                success: function(response) {
+                    if (response.code === 200) {
+                        users = response.data || [];
+                    }
+                }
+            });
+        }
+        
+        function renderGroups() {
+            var html = '';
+            if (groups.length === 0) {
+                html = '<tr><td colspan="7" class="text-center text-muted">暂无用户组</td></tr>';
+            } else {
+                groups.forEach(function(group) {
+                    var typeBadge = group.groupType === 1 ? 
+                        '<span class="badge badge-admin">管理员组</span>' : 
+                        '<span class="badge badge-normal">普通用户组</span>';
+                    var statusBadge = group.status === 1 ?
+                        '<span class="badge badge-success">启用</span>' :
+                        '<span class="badge badge-secondary">禁用</span>';
+                    
+                    html += '<tr>';
+                    html += '<td>' + group.groupName + '</td>';
+                    html += '<td>' + group.groupCode + '</td>';
+                    html += '<td>' + typeBadge + '</td>';
+                    html += '<td>' + (group.description || '-') + '</td>';
+                    html += '<td><a href="javascript:void(0)" onclick="showMemberModal(\'' + group.id + '\', \'' + group.groupName + '\')">查看成员</a></td>';
+                    html += '<td>' + statusBadge + '</td>';
+                    html += '<td>';
+                    if (group.groupType !== 1) {
+                        html += '<button class="btn btn-sm btn-outline-primary mr-1" onclick="showEditModal(\'' + group.id + '\')">编辑</button>';
+                        html += '<button class="btn btn-sm btn-outline-danger" onclick="deleteGroup(\'' + group.id + '\')">删除</button>';
+                    } else {
+                        html += '<button class="btn btn-sm btn-outline-info mr-1" onclick="showMemberModal(\'' + group.id + '\', \'' + group.groupName + '\')">管理成员</button>';
+                    }
+                    html += '</td>';
+                    html += '</tr>';
+                });
+            }
+            $('#groupList').html(html);
+        }
+        
+        function showCreateModal() {
+            $('#modalTitle').text('新建用户组');
+            $('#groupId').val('');
+            $('#groupName').val('');
+            $('#groupCode').val('').prop('disabled', false);
+            $('#groupType').val('2').prop('disabled', false);
+            $('#description').val('');
+            $('#status').val('1');
+            $('#groupModal').modal('show');
+        }
+        
+        function showEditModal(groupId) {
+            var group = groups.find(function(g) { return g.id === groupId; });
+            if (!group) return;
+            
+            $('#modalTitle').text('编辑用户组');
+            $('#groupId').val(group.id);
+            $('#groupName').val(group.groupName);
+            $('#groupCode').val(group.groupCode).prop('disabled', true);
+            $('#groupType').val(group.groupType).prop('disabled', true);
+            $('#description').val(group.description || '');
+            $('#status').val(group.status);
+            $('#groupModal').modal('show');
+        }
+        
+        function saveGroup() {
+            var id = $('#groupId').val();
+            var data = {
+                groupName: $('#groupName').val(),
+                groupCode: $('#groupCode').val(),
+                groupType: parseInt($('#groupType').val()),
+                description: $('#description').val(),
+                status: parseInt($('#status').val())
+            };
+            
+            if (!data.groupName) {
+                showToast('请输入用户组名称', 'warning');
+                return;
+            }
+            if (!data.groupCode) {
+                showToast('请输入用户组编码', 'warning');
+                return;
+            }
+            
+            var url = id ? '/api/group/update' : '/api/group/create';
+            if (id) {
+                data.id = id;
+            }
+            
+            $.ajax({
+                url: url,
+                type: id ? 'PUT' : 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function(response) {
+                    if (response.code === 200) {
+                        showToast(id ? '更新成功' : '创建成功', 'success');
+                        $('#groupModal').modal('hide');
+                        loadGroups();
+                    } else {
+                        showToast('操作失败: ' + response.message, 'danger');
+                    }
+                },
+                error: function() {
+                    showToast('操作失败', 'danger');
+                }
+            });
+        }
+        
+        function deleteGroup(groupId) {
+            if (!confirm('确定要删除该用户组吗？删除后不可恢复。')) {
+                return;
+            }
+            
+            $.ajax({
+                url: '/api/group/' + groupId,
+                type: 'DELETE',
+                success: function(response) {
+                    if (response.code === 200) {
+                        showToast('删除成功', 'success');
+                        loadGroups();
+                    } else {
+                        showToast('删除失败: ' + response.message, 'danger');
+                    }
+                },
+                error: function() {
+                    showToast('删除失败', 'danger');
+                }
+            });
+        }
+        
+        function showMemberModal(groupId, groupName) {
+            currentGroupId = groupId;
+            $('#memberGroupName').text(groupName);
+            loadGroupMembers(groupId);
+            $('#memberModal').modal('show');
+        }
+        
+        function loadGroupMembers(groupId) {
+            $.ajax({
+                url: '/api/group/member/' + groupId,
+                type: 'GET',
+                success: function(response) {
+                    if (response.code === 200) {
+                        renderMembers(response.data || []);
+                    }
+                }
+            });
+        }
+        
+        function renderMembers(members) {
+            var memberIds = members.map(function(m) { return m.id; });
+            
+            var availableHtml = '';
+            var filteredUsers = users.filter(function(u) { return memberIds.indexOf(u.id) < 0; });
+            filteredUsers.forEach(function(user) {
+                availableHtml += '<li class="list-group-item d-flex justify-content-between align-items-center">';
+                availableHtml += '<span>' + (user.real_name || user.username) + ' <small class="text-muted">(' + user.username + ')</small></span>';
+                availableHtml += '<button class="btn btn-sm btn-outline-primary" onclick="addMember(\'' + user.id + '\')">添加</button>';
+                availableHtml += '</li>';
+            });
+            if (filteredUsers.length === 0) {
+                availableHtml = '<li class="list-group-item text-center text-muted">暂无可添加用户</li>';
+            }
+            $('#availableUsers').html(availableHtml);
+            
+            var currentHtml = '';
+            members.forEach(function(member) {
+                currentHtml += '<li class="list-group-item d-flex justify-content-between align-items-center">';
+                currentHtml += '<span>' + (member.real_name || member.username) + ' <small class="text-muted">(' + member.username + ')</small></span>';
+                currentHtml += '<button class="btn btn-sm btn-outline-danger" onclick="removeMember(\'' + member.id + '\')">移除</button>';
+                currentHtml += '</li>';
+            });
+            if (members.length === 0) {
+                currentHtml = '<li class="list-group-item text-center text-muted">暂无成员</li>';
+            }
+            $('#currentMembers').html(currentHtml);
+        }
+        
+        function filterAvailableUsers() {
+            var keyword = $('#userSearch').val().toLowerCase();
+            var currentMembers = $('#currentMembers li').map(function() {
+                return $(this).data('userid');
+            }).get();
+            
+            var filteredUsers = users.filter(function(u) {
+                return currentMembers.indexOf(u.id) < 0 &&
+                    (u.username.toLowerCase().indexOf(keyword) >= 0 ||
+                     (u.real_name && u.real_name.toLowerCase().indexOf(keyword) >= 0));
+            });
+            
+            var html = '';
+            filteredUsers.forEach(function(user) {
+                html += '<li class="list-group-item d-flex justify-content-between align-items-center">';
+                html += '<span>' + (user.real_name || user.username) + ' <small class="text-muted">(' + user.username + ')</small></span>';
+                html += '<button class="btn btn-sm btn-outline-primary" onclick="addMember(\'' + user.id + '\')">添加</button>';
+                html += '</li>';
+            });
+            if (filteredUsers.length === 0) {
+                html = '<li class="list-group-item text-center text-muted">暂无可添加用户</li>';
+            }
+            $('#availableUsers').html(html);
+        }
+        
+        function addMember(userId) {
+            var data = {
+                groupId: currentGroupId,
+                userIds: [userId]
+            };
+            
+            $.ajax({
+                url: '/api/group/member/add',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function(response) {
+                    if (response.code === 200) {
+                        showToast('添加成功', 'success');
+                        loadGroupMembers(currentGroupId);
+                    } else {
+                        showToast('添加失败: ' + response.message, 'danger');
+                    }
+                },
+                error: function() {
+                    showToast('添加失败', 'danger');
+                }
+            });
+        }
+        
+        function removeMember(userId) {
+            $.ajax({
+                url: '/api/group/member/' + currentGroupId + '/' + userId,
+                type: 'DELETE',
+                success: function(response) {
+                    if (response.code === 200) {
+                        showToast('移除成功', 'success');
+                        loadGroupMembers(currentGroupId);
+                    } else {
+                        showToast('移除失败: ' + response.message, 'danger');
+                    }
+                },
+                error: function() {
+                    showToast('移除失败', 'danger');
+                }
+            });
+        }
+        
+        function showToast(message, type) {
+            var toast = $('<div class="toast" role="alert" style="min-width: 250px;">')
+                .addClass('toast-' + (type === 'danger' ? 'error' : type))
+                .html('<div class="toast-body">' + message + '</div>');
+            
+            $('.toast-container').append(toast);
+            toast.toast({ delay: 3000 });
+            toast.toast('show');
+            
+            setTimeout(function() {
+                toast.remove();
+            }, 3500);
+        }
+    </script>
+</body>
+</html>

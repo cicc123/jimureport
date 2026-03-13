@@ -1,285 +1,307 @@
 package com.jeecg.modules.jmreport.service;
 
-import com.jeecg.modules.jmreport.satoken.exception.AjaxJson;
+import cn.dev33.satoken.stp.StpUtil;
+import com.jeecg.modules.jmreport.dto.UserGroupDTO;
+import com.jeecg.modules.jmreport.dto.UserGroupMemberDTO;
+import com.jeecg.modules.jmreport.entity.UserGroup;
+import com.jeecg.modules.jmreport.entity.UserGroupMember;
+import com.jeecg.modules.jmreport.enums.GroupTypeEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * 用户分组服务
+ * 提供用户组的增删改查、用户组成员管理等功能
+ */
 @Service
 public class UserGroupService {
-
-    private Logger logger = LoggerFactory.getLogger(UserGroupService.class);
+    
+    private static final Logger logger = LoggerFactory.getLogger(UserGroupService.class);
     
     @Autowired
     private JdbcTemplate jdbcTemplate;
-
+    
     /**
-     * 获取用户组列表
+     * 检查当前用户是否为管理员
+     * @return true-管理员, false-普通用户
      */
-    public List<Map<String, Object>> getUserGroupList(String groupName, Integer status, Integer page, Integer pageSize) {
-        StringBuilder sql = new StringBuilder("SELECT id, group_name, group_code, tenant_id, description, status, create_time FROM jimu_user_group WHERE 1=1");
-        
-        if (groupName != null && !groupName.isEmpty()) {
-            sql.append(" AND group_name LIKE ?");
-        }
-        if (status != null) {
-            sql.append(" AND status = ?");
-        }
-        
-        sql.append(" ORDER BY create_time DESC");
-        sql.append(" LIMIT ? OFFSET ?");
-        
-        int offset = (page - 1) * pageSize;
-        
-        if (groupName != null && !groupName.isEmpty() && status != null) {
-            return jdbcTemplate.queryForList(sql.toString(), "%" + groupName + "%", status, pageSize, offset);
-        } else if (groupName != null && !groupName.isEmpty()) {
-            return jdbcTemplate.queryForList(sql.toString(), "%" + groupName + "%", pageSize, offset);
-        } else if (status != null) {
-            return jdbcTemplate.queryForList(sql.toString(), status, pageSize, offset);
-        } else {
-            return jdbcTemplate.queryForList(sql.toString(), pageSize, offset);
-        }
+    public boolean isAdmin() {
+        String username = StpUtil.getLoginIdAsString();
+        return isAdmin(username);
     }
-
+    
     /**
-     * 获取用户组总数
+     * 检查指定用户是否为管理员
+     * @param username 用户名
+     * @return true-管理员, false-普通用户
      */
-    public int getUserGroupCount(String groupName, Integer status) {
-        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM jimu_user_group WHERE 1=1");
-        
-        if (groupName != null && !groupName.isEmpty()) {
-            sql.append(" AND group_name LIKE ?");
+    public boolean isAdmin(String username) {
+        String sql = "SELECT is_admin FROM jimu_user WHERE username = ?";
+        List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, username);
+        if (result.isEmpty()) {
+            return false;
         }
-        if (status != null) {
-            sql.append(" AND status = ?");
-        }
-        
-        if (groupName != null && !groupName.isEmpty() && status != null) {
-            return jdbcTemplate.queryForObject(sql.toString(), Integer.class, "%" + groupName + "%", status);
-        } else if (groupName != null && !groupName.isEmpty()) {
-            return jdbcTemplate.queryForObject(sql.toString(), Integer.class, "%" + groupName + "%");
-        } else if (status != null) {
-            return jdbcTemplate.queryForObject(sql.toString(), Integer.class, status);
-        } else {
-            return jdbcTemplate.queryForObject(sql.toString(), Integer.class);
-        }
+        Object isAdminObj = result.get(0).get("is_admin");
+        return isAdminObj != null && "1".equals(isAdminObj.toString());
     }
-
+    
+    /**
+     * 获取当前用户ID
+     * @return 用户ID
+     */
+    public String getCurrentUserId() {
+        String username = StpUtil.getLoginIdAsString();
+        String sql = "SELECT id FROM jimu_user WHERE username = ?";
+        return jdbcTemplate.queryForObject(sql, String.class, username);
+    }
+    
+    /**
+     * 获取当前用户名
+     * @return 用户名
+     */
+    public String getCurrentUsername() {
+        return StpUtil.getLoginIdAsString();
+    }
+    
+    /**
+     * 获取用户所属的所有用户组
+     * @param userId 用户ID
+     * @return 用户组列表
+     */
+    public List<UserGroup> getUserGroups(String userId) {
+        String sql = "SELECT g.* FROM jimu_user_group g " +
+                "JOIN jimu_user_group_member m ON g.id = m.group_id " +
+                "WHERE m.user_id = ? AND g.status = 1 " +
+                "ORDER BY g.group_type, g.create_time";
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(UserGroup.class), userId);
+    }
+    
+    /**
+     * 获取用户所属的所有用户组ID
+     * @param userId 用户ID
+     * @return 用户组ID列表
+     */
+    public List<String> getUserGroupIds(String userId) {
+        String sql = "SELECT group_id FROM jimu_user_group_member WHERE user_id = ?";
+        return jdbcTemplate.queryForList(sql, String.class, userId);
+    }
+    
+    /**
+     * 检查用户是否属于管理员组
+     * @param userId 用户ID
+     * @return true-属于管理员组, false-不属于
+     */
+    public boolean isInAdminGroup(String userId) {
+        String sql = "SELECT COUNT(*) FROM jimu_user_group_member m " +
+                "JOIN jimu_user_group g ON m.group_id = g.id " +
+                "WHERE m.user_id = ? AND g.group_type = 1";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, userId);
+        return count != null && count > 0;
+    }
+    
+    /**
+     * 获取所有用户组列表
+     * @return 用户组列表
+     */
+    public List<UserGroup> getAllGroups() {
+        String sql = "SELECT id, group_name, group_code, group_type, tenant_id, description, status, create_by, create_time FROM jimu_user_group WHERE status = 1 ORDER BY group_type, create_time";
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(UserGroup.class));
+    }
+    
+    /**
+     * 根据用户组类型获取用户组列表
+     * @param groupType 用户组类型
+     * @return 用户组列表
+     */
+    public List<UserGroup> getGroupsByType(Integer groupType) {
+        String sql = "SELECT * FROM jimu_user_group WHERE group_type = ? AND status = 1 ORDER BY create_time";
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(UserGroup.class), groupType);
+    }
+    
     /**
      * 根据ID获取用户组
+     * @param groupId 用户组ID
+     * @return 用户组
      */
-    public Map<String, Object> getUserGroupById(String id) {
-        String sql = "SELECT id, group_name, group_code, tenant_id, description, status FROM jimu_user_group WHERE id = ?";
-        try {
-            return jdbcTemplate.queryForMap(sql, id);
-        } catch (Exception e) {
-            return null;
-        }
+    public UserGroup getGroupById(String groupId) {
+        String sql = "SELECT * FROM jimu_user_group WHERE id = ?";
+        List<UserGroup> list = jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(UserGroup.class), groupId);
+        return list.isEmpty() ? null : list.get(0);
     }
-
-    /**
-     * 获取用户组中的用户列表
-     */
-    public List<Map<String, Object>> getUsersInGroup(String groupId) {
-        String sql = "SELECT u.id, u.username, u.real_name, u.status FROM jimu_user u JOIN jimu_user_group_user gu ON u.id = gu.user_id WHERE gu.group_id = ?";
-        return jdbcTemplate.queryForList(sql, groupId);
-    }
-
-    /**
-     * 获取不在用户组中的用户列表
-     */
-    public List<Map<String, Object>> getUsersNotInGroup(String groupId, String username) {
-        StringBuilder sql = new StringBuilder("SELECT id, username, real_name, status FROM jimu_user WHERE id NOT IN (SELECT user_id FROM jimu_user_group_user WHERE group_id = ?)");
-        
-        if (username != null && !username.isEmpty()) {
-            sql.append(" AND username LIKE ?");
-            return jdbcTemplate.queryForList(sql.toString(), groupId, "%" + username + "%");
-        } else {
-            return jdbcTemplate.queryForList(sql.toString(), groupId);
-        }
-    }
-
+    
     /**
      * 创建用户组
+     * @param dto 用户组DTO
+     * @return 创建的用户组
      */
-    public AjaxJson createUserGroup(Map<String, Object> groupData) {
-        // 验证必填字段
-        if (!groupData.containsKey("group_name") || groupData.get("group_name") == null || groupData.get("group_name").toString().isEmpty()) {
-            return AjaxJson.error("用户组名称不能为空");
+    @Transactional(rollbackFor = Exception.class)
+    public UserGroup createGroup(UserGroupDTO dto) {
+        if (dto.getGroupCode() == null || dto.getGroupCode().trim().isEmpty()) {
+            throw new IllegalArgumentException("用户组编码不能为空");
         }
-        if (!groupData.containsKey("group_code") || groupData.get("group_code") == null || groupData.get("group_code").toString().isEmpty()) {
-            return AjaxJson.error("用户组编码不能为空");
+        if (dto.getGroupName() == null || dto.getGroupName().trim().isEmpty()) {
+            throw new IllegalArgumentException("用户组名称不能为空");
         }
         
-        String groupName = groupData.get("group_name").toString();
-        String groupCode = groupData.get("group_code").toString();
-        String tenantId = groupData.containsKey("tenant_id") ? groupData.get("tenant_id").toString() : "1";
-        String description = groupData.containsKey("description") ? groupData.get("description").toString() : "";
-        
-        // 检查用户组编码是否已存在
         String checkSql = "SELECT COUNT(*) FROM jimu_user_group WHERE group_code = ?";
-        int count = jdbcTemplate.queryForObject(checkSql, Integer.class, groupCode);
-        if (count > 0) {
-            return AjaxJson.error("用户组编码已存在");
+        Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, dto.getGroupCode());
+        if (count != null && count > 0) {
+            throw new IllegalArgumentException("用户组编码已存在: " + dto.getGroupCode());
         }
         
-        // 创建用户组
-        String id = UUID.randomUUID().toString();
-        String insertSql = "INSERT INTO jimu_user_group (id, group_name, group_code, tenant_id, description, status) VALUES (?, ?, ?, ?, ?, ?)";
-        jdbcTemplate.update(insertSql, id, groupName, groupCode, tenantId, description, 1);
+        String id = UUID.randomUUID().toString().replace("-", "");
+        String username = getCurrentUsername();
         
-        // 如果有用户信息，关联用户
-        if (groupData.containsKey("user_ids") && groupData.get("user_ids") != null) {
-            List<String> userIds = (List<String>) groupData.get("user_ids");
-            for (String userId : userIds) {
-                String guId = UUID.randomUUID().toString();
-                String insertGuSql = "INSERT INTO jimu_user_group_user (id, group_id, user_id) VALUES (?, ?, ?)";
-                jdbcTemplate.update(insertGuSql, guId, id, userId);
-            }
-        }
+        String sql = "INSERT INTO jimu_user_group (id, group_name, group_code, group_type, description, status, create_by, create_time) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+        jdbcTemplate.update(sql, id, dto.getGroupName(), dto.getGroupCode(), 
+                dto.getGroupType() != null ? dto.getGroupType() : GroupTypeEnum.NORMAL.getCode(),
+                dto.getDescription(),
+                dto.getStatus() != null ? dto.getStatus() : 1,
+                username);
         
-        return AjaxJson.success("用户组创建成功");
+        return getGroupById(id);
     }
-
+    
     /**
      * 更新用户组
+     * @param dto 用户组DTO
+     * @return 更新后的用户组
      */
-    public AjaxJson updateUserGroup(String id, Map<String, Object> groupData) {
-        // 检查用户组是否存在
-        Map<String, Object> existingGroup = getUserGroupById(id);
-        if (existingGroup == null) {
-            return AjaxJson.error("用户组不存在");
+    @Transactional(rollbackFor = Exception.class)
+    public UserGroup updateGroup(UserGroupDTO dto) {
+        if (dto.getId() == null || dto.getId().trim().isEmpty()) {
+            throw new IllegalArgumentException("用户组ID不能为空");
         }
         
-        // 构建更新语句
-        StringBuilder updateSql = new StringBuilder("UPDATE jimu_user_group SET ");
-        Object[] params = new Object[10]; // 预分配参数数组
-        int paramIndex = 0;
-        
-        if (groupData.containsKey("group_name")) {
-            updateSql.append("group_name = ?,");
-            params[paramIndex++] = groupData.get("group_name");
-        }
-        if (groupData.containsKey("description")) {
-            updateSql.append("description = ?,");
-            params[paramIndex++] = groupData.get("description");
-        }
-        if (groupData.containsKey("status")) {
-            updateSql.append("status = ?,");
-            params[paramIndex++] = groupData.get("status");
+        UserGroup existing = getGroupById(dto.getId());
+        if (existing == null) {
+            throw new IllegalArgumentException("用户组不存在: " + dto.getId());
         }
         
-        // 移除最后一个逗号
-        if (updateSql.toString().endsWith(",")) {
-            updateSql = new StringBuilder(updateSql.substring(0, updateSql.length() - 1));
-        }
+        String username = getCurrentUsername();
         
-        updateSql.append(" WHERE id = ?");
-        params[paramIndex++] = id;
+        String sql = "UPDATE jimu_user_group SET group_name = ?, description = ?, status = ?, update_by = ?, update_time = NOW() WHERE id = ?";
+        jdbcTemplate.update(sql, dto.getGroupName(), dto.getDescription(), dto.getStatus(), username, dto.getId());
         
-        // 执行更新
-        if (paramIndex > 1) { // 至少有一个更新字段
-            Object[] actualParams = new Object[paramIndex];
-            System.arraycopy(params, 0, actualParams, 0, paramIndex);
-            jdbcTemplate.update(updateSql.toString(), actualParams);
-        }
-        
-        // 更新用户关联
-        if (groupData.containsKey("user_ids")) {
-            // 删除旧的用户关联
-            String deleteSql = "DELETE FROM jimu_user_group_user WHERE group_id = ?";
-            jdbcTemplate.update(deleteSql, id);
-            
-            // 添加新的用户关联
-            List<String> userIds = (List<String>) groupData.get("user_ids");
-            for (String userId : userIds) {
-                String guId = UUID.randomUUID().toString();
-                String insertGuSql = "INSERT INTO jimu_user_group_user (id, group_id, user_id) VALUES (?, ?, ?)";
-                jdbcTemplate.update(insertGuSql, guId, id, userId);
-            }
-        }
-        
-        return AjaxJson.success("用户组更新成功");
+        return getGroupById(dto.getId());
     }
-
+    
     /**
      * 删除用户组
+     * @param groupId 用户组ID
      */
-    public AjaxJson deleteUserGroup(String id) {
-        // 检查用户组是否存在
-        Map<String, Object> existingGroup = getUserGroupById(id);
-        if (existingGroup == null) {
-            return AjaxJson.error("用户组不存在");
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteGroup(String groupId) {
+        UserGroup group = getGroupById(groupId);
+        if (group == null) {
+            throw new IllegalArgumentException("用户组不存在: " + groupId);
         }
         
-        // 开始事务
-        try {
-            // 删除用户组用户关联
-            String deleteGuSql = "DELETE FROM jimu_user_group_user WHERE group_id = ?";
-            jdbcTemplate.update(deleteGuSql, id);
-            
-            // 删除用户组
-            String deleteGroupSql = "DELETE FROM jimu_user_group WHERE id = ?";
-            jdbcTemplate.update(deleteGroupSql, id);
-            
-            return AjaxJson.success("用户组删除成功");
-        } catch (Exception e) {
-            logger.error("删除用户组失败：", e);
-            return AjaxJson.error("删除用户组失败");
+        if (GroupTypeEnum.ADMIN.getCode() == group.getGroupType()) {
+            throw new IllegalArgumentException("不能删除管理员组");
         }
+        
+        String deleteMembersSql = "DELETE FROM jimu_user_group_member WHERE group_id = ?";
+        jdbcTemplate.update(deleteMembersSql, groupId);
+        
+        String deletePermissionsSql = "DELETE FROM jimu_report_permission WHERE target_type = 2 AND target_id = ?";
+        jdbcTemplate.update(deletePermissionsSql, groupId);
+        
+        String deleteGroupSql = "DELETE FROM jimu_user_group WHERE id = ?";
+        jdbcTemplate.update(deleteGroupSql, groupId);
     }
-
+    
     /**
-     * 批量删除用户组
+     * 添加用户到用户组
+     * @param dto 用户组成员DTO
      */
-    public AjaxJson batchDeleteUserGroup(List<String> groupIds) {
-        if (groupIds == null || groupIds.isEmpty()) {
-            return AjaxJson.error("请选择要删除的用户组");
+    @Transactional(rollbackFor = Exception.class)
+    public void addMembers(UserGroupMemberDTO dto) {
+        if (dto.getGroupId() == null || dto.getGroupId().trim().isEmpty()) {
+            throw new IllegalArgumentException("用户组ID不能为空");
+        }
+        if (dto.getUserIds() == null || dto.getUserIds().isEmpty()) {
+            throw new IllegalArgumentException("用户ID列表不能为空");
         }
         
-        try {
-            for (String id : groupIds) {
-                // 检查用户组是否存在
-                Map<String, Object> existingGroup = getUserGroupById(id);
-                if (existingGroup != null) {
-                    // 删除用户组用户关联
-                    String deleteGuSql = "DELETE FROM jimu_user_group_user WHERE group_id = ?";
-                    jdbcTemplate.update(deleteGuSql, id);
-                    
-                    // 删除用户组
-                    String deleteGroupSql = "DELETE FROM jimu_user_group WHERE id = ?";
-                    jdbcTemplate.update(deleteGroupSql, id);
-                }
+        UserGroup group = getGroupById(dto.getGroupId());
+        if (group == null) {
+            throw new IllegalArgumentException("用户组不存在: " + dto.getGroupId());
+        }
+        
+        String username = getCurrentUsername();
+        String tenantId = getTenantId();
+        
+        for (String userId : dto.getUserIds()) {
+            String checkSql = "SELECT COUNT(*) FROM jimu_user_group_member WHERE user_id = ? AND group_id = ?";
+            Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, userId, dto.getGroupId());
+            if (count != null && count > 0) {
+                continue;
             }
             
-            return AjaxJson.success("批量删除用户组成功");
-        } catch (Exception e) {
-            logger.error("批量删除用户组失败：", e);
-            return AjaxJson.error("批量删除用户组失败");
+            String id = UUID.randomUUID().toString().replace("-", "");
+            String sql = "INSERT INTO jimu_user_group_member (id, user_id, group_id, tenant_id, create_by, create_time) VALUES (?, ?, ?, ?, ?, NOW())";
+            jdbcTemplate.update(sql, id, userId, dto.getGroupId(), tenantId, username);
         }
     }
-
+    
     /**
-     * 更新用户组状态
+     * 从用户组移除用户
+     * @param groupId 用户组ID
+     * @param userId 用户ID
      */
-    public AjaxJson updateUserGroupStatus(String id, Integer status) {
-        // 检查用户组是否存在
-        Map<String, Object> existingGroup = getUserGroupById(id);
-        if (existingGroup == null) {
-            return AjaxJson.error("用户组不存在");
+    @Transactional(rollbackFor = Exception.class)
+    public void removeMember(String groupId, String userId) {
+        String sql = "DELETE FROM jimu_user_group_member WHERE group_id = ? AND user_id = ?";
+        jdbcTemplate.update(sql, groupId, userId);
+    }
+    
+    /**
+     * 获取用户组成员列表
+     * @param groupId 用户组ID
+     * @return 成员用户ID列表
+     */
+    public List<String> getGroupMembers(String groupId) {
+        String sql = "SELECT user_id FROM jimu_user_group_member WHERE group_id = ?";
+        return jdbcTemplate.queryForList(sql, String.class, groupId);
+    }
+    
+    /**
+     * 获取用户组成员详细信息
+     * @param groupId 用户组ID
+     * @return 成员信息列表
+     */
+    public List<Map<String, Object>> getGroupMemberDetails(String groupId) {
+        String sql = "SELECT u.id, u.username, u.real_name, u.status, m.create_time as join_time " +
+                "FROM jimu_user u " +
+                "JOIN jimu_user_group_member m ON u.id = m.user_id " +
+                "WHERE m.group_id = ? " +
+                "ORDER BY m.create_time";
+        return jdbcTemplate.queryForList(sql, groupId);
+    }
+    
+    /**
+     * 获取当前租户ID
+     * @return 租户ID
+     */
+    private String getTenantId() {
+        try {
+            String username = StpUtil.getLoginIdAsString();
+            String sql = "SELECT tenant_id FROM jimu_user WHERE username = ?";
+            return jdbcTemplate.queryForObject(sql, String.class, username);
+        } catch (Exception e) {
+            return "1";
         }
-        
-        // 更新状态
-        String updateSql = "UPDATE jimu_user_group SET status = ? WHERE id = ?";
-        jdbcTemplate.update(updateSql, status, id);
-        
-        return AjaxJson.success("用户组状态更新成功");
     }
 }

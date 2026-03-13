@@ -158,14 +158,35 @@ public class UserService {
             users = jdbcTemplate.queryForList(sql.toString(), pageSize, offset);
         }
         
-        // 为每个用户添加角色信息
+        // 为每个用户添加角色信息和用户组名称
         for (Map<String, Object> user : users) {
             String userId = user.get("id").toString();
             List<String> roles = getRolesByUserId(userId);
             user.put("roles", roles);
+            
+            // 获取用户组名称
+            String tenantId = user.get("tenant_id") != null ? user.get("tenant_id").toString() : null;
+            if (tenantId != null) {
+                String groupName = getGroupNameById(tenantId);
+                user.put("group_name", groupName);
+            } else {
+                user.put("group_name", "默认用户组");
+            }
         }
         
         return users;
+    }
+    
+    /**
+     * 根据用户组ID获取用户组名称
+     */
+    private String getGroupNameById(String groupId) {
+        try {
+            String sql = "SELECT group_name FROM jimu_user_group WHERE id = ?";
+            return jdbcTemplate.queryForObject(sql, String.class, groupId);
+        } catch (Exception e) {
+            return "默认用户组";
+        }
     }
     
     /**

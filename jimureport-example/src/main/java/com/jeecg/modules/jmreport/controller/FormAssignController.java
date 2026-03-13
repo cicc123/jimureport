@@ -1,9 +1,12 @@
 package com.jeecg.modules.jmreport.controller;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.jeecg.modules.jmreport.service.AuditLogService;
 import com.jeecg.modules.jmreport.service.FormAssignService;
 import com.jeecg.modules.jmreport.service.PermissionService;
 import com.jeecg.modules.jmreport.satoken.exception.AjaxJson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +17,8 @@ import java.util.Map;
 @Controller
 @RequestMapping("/formAssign")
 public class FormAssignController {
+
+    private static final Logger logger = LoggerFactory.getLogger(FormAssignController.class);
 
     @Autowired
     private FormAssignService formAssignService;
@@ -29,11 +34,18 @@ public class FormAssignController {
      */
     @GetMapping("/index")
     public String index() {
-        // 检查权限
-        if (!permissionService.hasPermission("form:assign")) {
-            return "error/403";
+        if (!StpUtil.isLogin()) {
+            return "redirect:/login/login.html";
         }
-        return "formAssign/index";
+        try {
+            if (!permissionService.hasPermission("report:assign") && !permissionService.hasPermission("form:assign")) {
+                return "redirect:/error/403.html";
+            }
+        } catch (Exception e) {
+            logger.error("权限检查失败: {}", e.getMessage());
+            return "redirect:/error/403.html";
+        }
+        return "forward:/formAssign/index.html";
     }
 
     /**
