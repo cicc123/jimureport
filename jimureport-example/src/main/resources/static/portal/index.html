@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>报表门户</title>
+    <link rel="stylesheet" href="/login/cdn/bootstrap.min.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        .topbar {
+            background-color: #343a40;
+            color: white;
+            padding: 0 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .topbar .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+        }
+        .topbar .logo {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .topbar .menu {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .topbar .menu li {
+            margin-left: 20px;
+        }
+        .topbar .menu a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+        }
+        .topbar .menu a:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+        .content {
+            padding: 20px;
+        }
+        .card {
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: bold;
+        }
+        .card-body {
+            padding: 20px;
+        }
+        .report-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .report-card {
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            overflow: hidden;
+            transition: box-shadow 0.3s ease;
+        }
+        .report-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .report-card .card-header {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+        }
+        .report-card .card-body {
+            padding: 15px;
+        }
+        .report-card .card-footer {
+            padding: 10px 15px;
+            background-color: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+        }
+        .report-card .btn {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="container">
+            <div class="logo">报表门户</div>
+            <ul class="menu">
+                <li><a href="/portal/index.html">首页</a></li>
+                <li><a href="/logout">退出登录</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="content">
+        <div class="card">
+            <div class="card-header">可用报表</div>
+            <div class="card-body">
+                <div class="report-list" id="reportList">
+                    <!-- 报表列表将通过JavaScript动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 页面加载时获取报表列表
+        $(document).ready(function() {
+            console.log('页面加载完成，开始获取报表列表');
+            getReportList();
+        });
+        
+        // 获取报表列表
+        function getReportList() {
+            // 显示加载状态
+            $('#reportList').html('<div class="text-center"><div class="spinner-border" role="status"><span class="sr-only">加载中...</span></div> 加载报表列表中...</div>');
+            
+            // 从API获取报表数据
+            $.ajax({
+                url: '/api/portal/reports',
+                type: 'GET',
+                success: function(reports) {
+                    console.log('获取到报表数据：', reports);
+                    
+                    // 填充报表列表
+                    var reportHtml = '';
+                    if (reports.length > 0) {
+                        reports.forEach(function(report) {
+                            reportHtml += '<div class="report-card">';
+                            reportHtml += '    <div class="card-header">' + (report.name || '未命名报表') + '</div>';
+                            reportHtml += '    <div class="card-body">';
+                            reportHtml += '        <p>' + (report.description || '无描述') + '</p>';
+                            reportHtml += '        <small class="text-muted">创建时间: ' + (report.create_time || '未知') + '</small>';
+                            reportHtml += '    </div>';
+                            reportHtml += '    <div class="card-footer">';
+                            reportHtml += '        <a href="/jmreport/view/' + report.id + '" class="btn btn-primary">查看报表</a>';
+                            reportHtml += '    </div>';
+                            reportHtml += '</div>';
+                        });
+                    } else {
+                        reportHtml = '<div class="text-center text-muted">暂无可用报表</div>';
+                    }
+                    
+                    $('#reportList').html(reportHtml);
+                },
+                error: function(xhr, status, error) {
+                    console.error('获取报表列表失败：', error);
+                    $('#reportList').html('<div class="text-center text-danger">获取报表列表失败，请刷新页面重试</div>');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

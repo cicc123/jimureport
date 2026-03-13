@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>表单分配</title>
+    <link rel="stylesheet" href="/login/cdn/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            margin-top: 20px;
+        }
+        .card {
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            background-color: #343a40;
+            color: white;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .btn-group {
+            margin-right: 10px;
+        }
+        .table-responsive {
+            margin-top: 20px;
+        }
+        .alert {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h3>表单分配管理</h3>
+            </div>
+            <div class="card-body">
+                <!-- 表单分配表单 -->
+                <form id="assignForm">
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label for="formId">表单ID</label>
+                            <input type="text" class="form-control" id="formId" name="formId" required>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label for="assignType">分配类型</label>
+                            <select class="form-control" id="assignType" name="assignType" required>
+                                <option value="user">用户</option>
+                                <option value="role">角色</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label for="targetId">目标ID</label>
+                            <input type="text" class="form-control" id="targetId" name="targetId" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-12">
+                            <label for="perms">权限</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="permView" name="perms" value="view">
+                                <label class="form-check-label" for="permView">查看</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="permEdit" name="perms" value="edit">
+                                <label class="form-check-label" for="permEdit">编辑</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="permDelete" name="perms" value="delete">
+                                <label class="form-check-label" for="permDelete">删除</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="permDesign" name="perms" value="design">
+                                <label class="form-check-label" for="permDesign">设计</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-12">
+                            <button type="button" class="btn btn-primary" id="assignBtn">分配</button>
+                            <button type="button" class="btn btn-danger" id="revokeBtn">撤销</button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- 分配记录 -->
+                <div class="table-responsive">
+                    <h4>分配记录</h4>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>表单ID</th>
+                                <th>用户/角色</th>
+                                <th>权限</th>
+                                <th>创建时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assignmentTable">
+                            <!-- 分配记录将通过AJAX加载 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // 加载分配记录
+            loadAssignments();
+
+            // 分配按钮点击事件
+            $('#assignBtn').click(function() {
+                var formId = $('#formId').val();
+                var assignType = $('#assignType').val();
+                var targetId = $('#targetId').val();
+                var perms = [];
+                $('input[name="perms"]:checked').each(function() {
+                    perms.push($(this).val());
+                });
+
+                if (perms.length === 0) {
+                    alert('请选择至少一项权限');
+                    return;
+                }
+
+                var permsStr = perms.join(',');
+
+                if (assignType === 'user') {
+                    $.post('/formAssign/assignToUser', {
+                        formId: formId,
+                        userId: targetId,
+                        perms: permsStr
+                    }, function(data) {
+                        if (data.success) {
+                            alert('分配成功');
+                            loadAssignments();
+                        } else {
+                            alert('分配失败：' + data.msg);
+                        }
+                    });
+                } else {
+                    $.post('/formAssign/assignToRole', {
+                        formId: formId,
+                        roleId: targetId,
+                        perms: permsStr
+                    }, function(data) {
+                        if (data.success) {
+                            alert('分配成功');
+                            loadAssignments();
+                        } else {
+                            alert('分配失败：' + data.msg);
+                        }
+                    });
+                }
+            });
+
+            // 撤销按钮点击事件
+            $('#revokeBtn').click(function() {
+                var formId = $('#formId').val();
+                var assignType = $('#assignType').val();
+                var targetId = $('#targetId').val();
+
+                if (assignType === 'user') {
+                    $.post('/formAssign/revokePermission', {
+                        formId: formId,
+                        userId: targetId
+                    }, function(data) {
+                        if (data.success) {
+                            alert('撤销成功');
+                            loadAssignments();
+                        } else {
+                            alert('撤销失败：' + data.msg);
+                        }
+                    });
+                } else {
+                    $.post('/formAssign/revokePermission', {
+                        formId: formId,
+                        roleId: targetId
+                    }, function(data) {
+                        if (data.success) {
+                            alert('撤销成功');
+                            loadAssignments();
+                        } else {
+                            alert('撤销失败：' + data.msg);
+                        }
+                    });
+                }
+            });
+
+            // 加载分配记录
+            function loadAssignments() {
+                var formId = $('#formId').val();
+                if (!formId) {
+                    return;
+                }
+
+                $.get('/formAssign/getAssignments', {formId: formId}, function(data) {
+                    if (data.success) {
+                        var assignments = data.data;
+                        var html = '';
+                        assignments.forEach(function(assignment) {
+                            var target = assignment.username ? assignment.username : assignment.role_name;
+                            html += '<tr>' +
+                                '<td>' + assignment.id + '</td>' +
+                                '<td>' + assignment.form_id + '</td>' +
+                                '<td>' + target + '</td>' +
+                                '<td>' + assignment.perms + '</td>' +
+                                '<td>' + assignment.create_time + '</td>' +
+                                '<td><button class="btn btn-sm btn-danger revoke-btn" data-formid="' + assignment.form_id + '" data-userid="' + assignment.user_id + '" data-roleid="' + assignment.role_id + '">撤销</button></td>' +
+                                '</tr>';
+                        });
+                        $('#assignmentTable').html(html);
+
+                        // 绑定撤销按钮事件
+                        $('.revoke-btn').click(function() {
+                            var formId = $(this).data('formid');
+                            var userId = $(this).data('userid');
+                            var roleId = $(this).data('roleid');
+
+                            $.post('/formAssign/revokePermission', {
+                                formId: formId,
+                                userId: userId,
+                                roleId: roleId
+                            }, function(data) {
+                                if (data.success) {
+                                    alert('撤销成功');
+                                    loadAssignments();
+                                } else {
+                                    alert('撤销失败：' + data.msg);
+                                }
+                            });
+                        });
+                    } else {
+                        alert('获取分配记录失败：' + data.msg);
+                    }
+                });
+            }
+
+            // 表单ID变化时加载分配记录
+            $('#formId').change(function() {
+                loadAssignments();
+            });
+        });
+    </script>
+</body>
+</html>

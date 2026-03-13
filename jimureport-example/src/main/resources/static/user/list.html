@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理</title>
+    <link rel="stylesheet" href="/login/cdn/bootstrap.min.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        .topbar {
+            background-color: #343a40;
+            color: white;
+            padding: 0 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .topbar .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+        }
+        .topbar .logo {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .topbar .menu {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .topbar .menu li {
+            margin-left: 20px;
+        }
+        .topbar .menu a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+        }
+        .topbar .menu a:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+        .content {
+            padding: 20px;
+        }
+        .card {
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: bold;
+        }
+        .card-body {
+            padding: 20px;
+        }
+        .table-responsive {
+            margin-top: 20px;
+        }
+        .btn-group {
+            margin-bottom: 20px;
+        }
+        .search-form {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .pagination {
+            margin-top: 20px;
+            justify-content: center;
+        }
+        .modal-body {
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .sort-icon {
+            margin-left: 5px;
+            font-size: 12px;
+        }
+        .sort-asc::after {
+            content: '↑';
+        }
+        .sort-desc::after {
+            content: '↓';
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="container">
+            <div class="logo">积木报表</div>
+            <ul class="menu">
+                <li><a href="/index.html">首页</a></li>
+                <li><a href="/jmreport/list">报表管理</a></li>
+                <li><a href="/formAssign/index">表单分配</a></li>
+                <li><a href="/user/list" class="active">用户管理</a></li>
+                <li><a href="/role/list">角色管理</a></li>
+                <li><a href="/permission/list">权限管理</a></li>
+                <li><a href="/logout">退出登录</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="content">
+        <div class="card">
+            <div class="card-header">用户管理</div>
+            <div class="card-body">
+                <!-- 搜索表单 -->
+                <div class="search-form">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="search-username">用户名</label>
+                                <input type="text" class="form-control" id="search-username" placeholder="请输入用户名">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="search-status">状态</label>
+                                <select class="form-control" id="search-status">
+                                    <option value="">全部</option>
+                                    <option value="1">正常</option>
+                                    <option value="0">禁用</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group" style="margin-top: 24px;">
+                                <button class="btn btn-primary" onclick="searchUsers()">搜索</button>
+                                <button class="btn btn-default" onclick="resetSearch()">重置</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 操作按钮 -->
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="addUser()">添加用户</button>
+                    <button class="btn btn-danger" onclick="deleteUsers()">删除选中用户</button>
+                </div>
+                
+                <!-- 用户列表 -->
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAll"></th>
+                                <th onclick="sortBy('id')">ID <span id="sort-id" class="sort-icon"></span></th>
+                                <th onclick="sortBy('username')">用户名 <span id="sort-username" class="sort-icon"></span></th>
+                                <th onclick="sortBy('real_name')">姓名 <span id="sort-real_name" class="sort-icon"></span></th>
+                                <th onclick="sortBy('email')">邮箱 <span id="sort-email" class="sort-icon"></span></th>
+                                <th>角色</th>
+                                <th onclick="sortBy('status')">状态 <span id="sort-status" class="sort-icon"></span></th>
+                                <th onclick="sortBy('create_time')">创建时间 <span id="sort-create_time" class="sort-icon"></span></th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userTableBody">
+                            <!-- 动态生成用户列表 -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- 分页 -->
+                <nav>
+                    <ul class="pagination" id="pagination">
+                        <!-- 动态生成分页 -->
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 添加/编辑用户模态框 -->
+    <div class="modal fade" id="userModal" tabindex="-1" role="dialog" aria-labelledby="userModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="userModalLabel">添加用户</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <form id="userForm">
+                        <input type="hidden" id="userId">
+                        <div class="form-group">
+                            <label for="username">用户名 *</label>
+                            <input type="text" class="form-control" id="username" name="username" placeholder="请输入用户名">
+                        </div>
+                        <div class="form-group">
+                            <label for="password">密码 *</label>
+                            <input type="password" class="form-control" id="password" name="password" placeholder="请输入密码">
+                            <small class="form-text text-muted">密码至少8位，包含大小写字母、数字和特殊符号</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="real_name">姓名 *</label>
+                            <input type="text" class="form-control" id="real_name" name="real_name" placeholder="请输入姓名">
+                        </div>
+                        <div class="form-group">
+                            <label for="tenant_id">租户</label>
+                            <select class="form-control" id="tenant_id" name="tenant_id">
+                                <option value="1">默认租户</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="status">状态</label>
+                            <select class="form-control" id="status" name="status">
+                                <option value="1">正常</option>
+                                <option value="0">禁用</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="is_admin">管理员</label>
+                            <select class="form-control" id="is_admin" name="is_admin">
+                                <option value="0">否</option>
+                                <option value="1">是</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveUser()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        var currentPage = 1;
+        var pageSize = 10;
+        var sortField = 'create_time';
+        var sortOrder = 'desc';
+        
+        // 页面加载时获取用户列表
+        $(document).ready(function() {
+            console.log('页面加载完成，开始获取用户列表');
+            getUserList();
+        });
+        
+        // 全选/取消全选
+        $('#selectAll').click(function() {
+            $('.userCheck').prop('checked', $(this).prop('checked'));
+        });
+        
+        // 排序函数
+        function sortBy(field) {
+            console.log('排序字段:', field);
+            if (sortField === field) {
+                sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortField = field;
+                sortOrder = 'asc';
+            }
+            
+            // 更新排序图标
+            $('.sort-icon').removeClass('sort-asc sort-desc');
+            $('#sort-' + field).addClass('sort-' + sortOrder);
+            
+            // 重新获取用户列表
+            currentPage = 1;
+            getUserList();
+        }
+        
+        // 获取用户列表
+        function getUserList() {
+            var username = $('#search-username').val();
+            var status = $('#search-status').val();
+            
+            console.log('获取用户列表 - username:', username, 'status:', status, 'page:', currentPage);
+            
+            // 显示加载状态
+            $('#userTableBody').html('<tr><td colspan="9" class="text-center"><div class="spinner-border" role="status"><span class="sr-only">加载中...</span></div> 加载用户列表中...</td></tr>');
+            
+            $.ajax({
+                url: '/api/user/list',
+                type: 'GET',
+                data: {
+                    username: username,
+                    status: status ? status : null,
+                    page: currentPage,
+                    pageSize: pageSize,
+                    sortField: sortField,
+                    sortOrder: sortOrder
+                },
+                success: function(response) {
+                    console.log('API响应:', response);
+                    if (response.success) {
+                        var resultData = response.data && response.data.data ? response.data.data : response.data;
+                        console.log('处理后的数据:', resultData);
+                        
+                        var users = resultData.list;
+                        var total = resultData.total;
+                        
+                        console.log('用户列表:', users);
+                        console.log('总数:', total);
+                        
+                        // 清空表格
+                        $('#userTableBody').empty();
+                        
+                        // 填充表格
+                        if (users && users.length > 0) {
+                            users.forEach(function(user) {
+                                var statusText = user.status == 1 ? '正常' : '禁用';
+                                var statusClass = user.status == 1 ? 'label-success' : 'label-danger';
+                                var email = user.email || '-';
+                                var roles = user.roles && user.roles.length > 0 ? user.roles.join(', ') : '-';
+                                
+                                var row = '<tr>';
+                                row += '<td><input type="checkbox" class="userCheck" value="' + user.id + '"></td>';
+                                row += '<td>' + user.id + '</td>';
+                                row += '<td>' + user.username + '</td>';
+                                row += '<td>' + user.real_name + '</td>';
+                                row += '<td>' + email + '</td>';
+                                row += '<td>' + roles + '</td>';
+                                row += '<td><span class="label ' + statusClass + '">' + statusText + '</span></td>';
+                                row += '<td>' + user.create_time + '</td>';
+                                row += '<td>';
+                                row += '<button class="btn btn-sm btn-primary" onclick="changePassword(\'' + user.id + '\')">修改密码</button> ';
+                                row += '<button class="btn btn-sm btn-danger" onclick="deleteUser(\'' + user.id + '\')">删除</button> ';
+                                row += '<button class="btn btn-sm btn-' + (user.status == 1 ? 'warning' : 'success') + '" onclick="toggleStatus(\'' + user.id + '\', ' + (user.status == 1 ? 0 : 1) + ')">' + (user.status == 1 ? '禁用' : '启用') + '</button>';
+                                row += '</td>';
+
+                                row += '</tr>';
+                                
+                                $('#userTableBody').append(row);
+                            });
+                        } else {
+                            var row = '<tr><td colspan="9" class="text-center">暂无数据</td></tr>';
+                            $('#userTableBody').append(row);
+                        }
+                        
+                        // 生成分页
+                        generatePagination(total);
+                        
+                        // 更新排序图标
+                        $('.sort-icon').removeClass('sort-asc sort-desc');
+                        $('#sort-' + sortField).addClass('sort-' + sortOrder);
+                    } else {
+                        // 显示错误信息
+                        $('#userTableBody').html('<tr><td colspan="9" class="text-center text-danger">获取用户列表失败：' + response.msg + '</td></tr>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('API错误:', xhr, status, error);
+                    // 显示错误信息
+                    $('#userTableBody').html('<tr><td colspan="9" class="text-center text-danger">获取用户列表失败，请检查网络连接: ' + error + '</td></tr>');
+                }
+            });
+        }
+        
+        // 生成分页
+        function generatePagination(total) {
+            var totalPages = Math.ceil(total / pageSize);
+            var paginationHtml = '';
+            
+            // 上一页
+            paginationHtml += '<li ' + (currentPage == 1 ? 'class="disabled"' : '') + '><a href="#" onclick="goToPage(' + (currentPage - 1) + ')">上一页</a></li>';
+            
+            // 页码
+            for (var i = 1; i <= totalPages; i++) {
+                paginationHtml += '<li ' + (currentPage == i ? 'class="active"' : '') + '><a href="#" onclick="goToPage(' + i + ')">' + i + '</a></li>';
+            }
+            
+            // 下一页
+            paginationHtml += '<li ' + (currentPage == totalPages ? 'class="disabled"' : '') + '><a href="#" onclick="goToPage(' + (currentPage + 1) + ')">下一页</a></li>';
+            
+            $('#pagination').html(paginationHtml);
+        }
+        
+        // 跳转到指定页面
+        function goToPage(page) {
+            if (page >= 1) {
+                currentPage = page;
+                getUserList();
+            }
+        }
+        
+        // 搜索用户
+        function searchUsers() {
+            console.log('搜索用户');
+            currentPage = 1;
+            getUserList();
+        }
+        
+        // 重置搜索
+        function resetSearch() {
+            console.log('重置搜索');
+            $('#search-username').val('');
+            $('#search-status').val('');
+            currentPage = 1;
+            getUserList();
+        }
+        
+        // 添加用户
+        function addUser() {
+            console.log('添加用户');
+            $('#userModalLabel').text('添加用户');
+            $('#userId').val('');
+            $('#userForm')[0].reset();
+            $('#password').prop('required', true);
+            // 启用所有字段
+            $('#username').prop('disabled', false);
+            $('#real_name').prop('disabled', false);
+            $('#tenant_id').prop('disabled', false);
+            $('#status').prop('disabled', false);
+            $('#is_admin').prop('disabled', false);
+            $('#userModal').modal('show');
+        }
+        
+        // 修改密码
+        function changePassword(userId) {
+            console.log('修改密码:', userId);
+            $('#userModalLabel').text('修改密码');
+            $('#userId').val(userId);
+            $('#username').val('').prop('disabled', true);
+            $('#password').val('').prop('required', true);
+            $('#real_name').val('').prop('disabled', true);
+            $('#tenant_id').prop('disabled', true);
+            $('#status').prop('disabled', true);
+            $('#is_admin').prop('disabled', true);
+            $('#userModal').modal('show');
+        }
+        
+        // 保存用户
+        function saveUser() {
+            console.log('保存用户');
+            var userId = $('#userId').val();
+            var userData = {};
+            
+            if (userId) {
+                // 修改密码
+                userData.password = $('#password').val();
+                
+                // 验证密码
+                if (!userData.password) {
+                    alert('密码不能为空');
+                    return;
+                }
+                if (userData.password.length < 6) {
+                    alert('密码长度至少6位');
+                    return;
+                }
+            } else {
+                // 创建用户
+                userData = {
+                    username: $('#username').val(),
+                    password: $('#password').val(),
+                    real_name: $('#real_name').val(),
+                    tenant_id: $('#tenant_id').val(),
+                    status: parseInt($('#status').val()),
+                    is_admin: parseInt($('#is_admin').val())
+                };
+                
+                // 验证必填字段
+                if (!userData.username) {
+                    alert('用户名不能为空');
+                    return;
+                }
+                if (!userData.password) {
+                    alert('密码不能为空');
+                    return;
+                }
+                if (!userData.real_name) {
+                    alert('姓名不能为空');
+                    return;
+                }
+            }
+            
+            console.log('用户数据:', userData);
+            
+            var url = userId ? '/api/user/update/' + userId : '/api/user/create';
+            var type = userId ? 'PUT' : 'POST';
+            
+            console.log('请求URL:', url);
+            console.log('请求类型:', type);
+            
+            $.ajax({
+                url: url,
+                type: type,
+                contentType: 'application/json',
+                data: JSON.stringify(userData),
+                success: function(response) {
+                    console.log('保存响应:', response);
+                    if (response.success) {
+                        alert(userId ? '密码修改成功' : '保存成功');
+                        $('#userModal').modal('hide');
+                        getUserList();
+                    } else {
+                        alert('操作失败：' + response.msg);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('保存错误:', xhr, status, error);
+                    alert('操作失败: ' + error);
+                }
+            });
+        }
+        
+        // 删除用户
+        function deleteUser(userId) {
+            console.log('删除用户:', userId);
+            if (confirm('确定要删除该用户吗？')) {
+                $.ajax({
+                    url: '/api/user/delete/' + userId,
+                    type: 'DELETE',
+                    success: function(response) {
+                        if (response.success) {
+                            alert('删除成功');
+                            getUserList();
+                        } else {
+                            alert('删除失败：' + response.msg);
+                        }
+                    },
+                    error: function() {
+                        alert('删除失败');
+                    }
+                });
+            }
+        }
+        
+        // 批量删除用户
+        function deleteUsers() {
+            console.log('批量删除用户');
+            var selectedIds = [];
+            $('.userCheck:checked').each(function() {
+                selectedIds.push($(this).val());
+            });
+            
+            if (selectedIds.length == 0) {
+                alert('请选择要删除的用户');
+                return;
+            }
+            
+            if (confirm('确定要删除选中的用户吗？')) {
+                $.ajax({
+                    url: '/api/user/batchDelete',
+                    type: 'DELETE',
+                    contentType: 'application/json',
+                    data: JSON.stringify(selectedIds),
+                    success: function(response) {
+                        if (response.success) {
+                            alert('批量删除成功');
+                            getUserList();
+                        } else {
+                            alert('批量删除失败：' + response.msg);
+                        }
+                    },
+                    error: function() {
+                        alert('批量删除失败');
+                    }
+                });
+            }
+        }
+        
+        // 切换用户状态
+        function toggleStatus(userId, status) {
+            console.log('切换用户状态:', userId, status);
+            var statusText = status == 1 ? '启用' : '禁用';
+            if (confirm('确定要' + statusText + '该用户吗？')) {
+                $.ajax({
+                    url: '/api/user/status/' + userId,
+                    type: 'PUT',
+                    data: { status: status },
+                    success: function(response) {
+                        if (response.success) {
+                            alert(statusText + '成功');
+                            getUserList();
+                        } else {
+                            alert(statusText + '失败：' + response.msg);
+                        }
+                    },
+                    error: function() {
+                        alert(statusText + '失败');
+                    }
+                });
+            }
+        }
+        
+
+    </script>
+</body>
+</html>

@@ -103,12 +103,7 @@
             <artifactId>jimureport-echarts-starter</artifactId>
             <version>${jimureport-echarts.version}</version>
         </dependency>
-        <!-- 积木BI大屏 -->
-        <dependency>
-            <groupId>org.jeecgframework.jimureport</groupId>
-            <artifactId>jimubi-spring-boot3-starter</artifactId>
-            <version>${jimubi.version}</version>
-        </dependency>
+
         <!-- minidao -->
         <dependency>
             <groupId>org.jeecgframework.boot3</groupId>
@@ -143,6 +138,11 @@
             <groupId>cn.dev33</groupId>
             <artifactId>sa-token-spring-boot3-starter</artifactId>
             <version>1.44.0</version>
+        </dependency>
+        <!-- Spring Security -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 <!--        &lt;!&ndash; Sa-Token整合 Redis(使用jackson序列化方式) &ndash;&gt;
         <dependency>

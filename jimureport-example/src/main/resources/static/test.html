@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>简单测试</title>
+</head>
+<body>
+    <h1>简单测试页面</h1>
+    <button onclick="testAPI()">测试API</button>
+    <div id="result"></div>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function testAPI() {
+            $.ajax({
+                url: '/api/user/list',
+                type: 'GET',
+                success: function(response) {
+                    $('#result').html('<pre>' + JSON.stringify(response, null, 2) + '</pre>');
+                    console.log('Response:', response);
+                    if (response.success) {
+                        var resultData = response.data.data || response.data;
+                        console.log('Users:', resultData.list);
+                        console.log('Total:', resultData.total);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#result').html('Error: ' + error);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

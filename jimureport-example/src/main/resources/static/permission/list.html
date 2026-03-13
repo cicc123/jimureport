@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>权限管理</title>
+    <link rel="stylesheet" href="/login/cdn/bootstrap.min.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        .topbar {
+            background-color: #343a40;
+            color: white;
+            padding: 0 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .topbar .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+        }
+        .topbar .logo {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .topbar .menu {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .topbar .menu li {
+            margin-left: 20px;
+        }
+        .topbar .menu a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+        }
+        .topbar .menu a:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+        .content {
+            padding: 20px;
+        }
+        .card {
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: bold;
+        }
+        .card-body {
+            padding: 20px;
+        }
+        .table-responsive {
+            margin-top: 20px;
+        }
+        .btn-group {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="container">
+            <div class="logo">积木报表</div>
+            <ul class="menu">
+                <li><a href="/index.html">首页</a></li>
+                <li><a href="/jmreport/list">报表管理</a></li>
+                <li><a href="/formAssign/index">表单分配</a></li>
+                <li><a href="/user/list">用户管理</a></li>
+                <li><a href="/role/list">角色管理</a></li>
+                <li><a href="/permission/list" class="active">权限管理</a></li>
+                <li><a href="/logout">退出登录</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="content">
+        <div class="card">
+            <div class="card-header">权限管理</div>
+            <div class="card-body">
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="addPermission()">添加权限</button>
+                    <button class="btn btn-danger" onclick="deletePermissions()">删除选中权限</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAll"></th>
+                                <th>ID</th>
+                                <th>权限名称</th>
+                                <th>权限代码</th>
+                                <th>描述</th>
+                                <th>创建时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><input type="checkbox" class="permissionCheck"></td>
+                                <td>1</td>
+                                <td>报表管理</td>
+                                <td>report:manage</td>
+                                <td>报表管理权限</td>
+                                <td>2025-01-01</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" onclick="editPermission(1)">编辑</button>
+                                    <button class="btn btn-sm btn-danger" onclick="deletePermission(1)">删除</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="permissionCheck"></td>
+                                <td>2</td>
+                                <td>表单分配</td>
+                                <td>form:assign</td>
+                                <td>表单分配权限</td>
+                                <td>2025-01-01</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" onclick="editPermission(2)">编辑</button>
+                                    <button class="btn btn-sm btn-danger" onclick="deletePermission(2)">删除</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="permissionCheck"></td>
+                                <td>3</td>
+                                <td>用户管理</td>
+                                <td>user:manage</td>
+                                <td>用户管理权限</td>
+                                <td>2025-01-01</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" onclick="editPermission(3)">编辑</button>
+                                    <button class="btn btn-sm btn-danger" onclick="deletePermission(3)">删除</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="permissionCheck"></td>
+                                <td>4</td>
+                                <td>角色管理</td>
+                                <td>role:manage</td>
+                                <td>角色管理权限</td>
+                                <td>2025-01-01</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" onclick="editPermission(4)">编辑</button>
+                                    <button class="btn btn-sm btn-danger" onclick="deletePermission(4)">删除</button>
+                                </td>
+                            </tr>
+                            <!-- 更多权限记录 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="/login/cdn/bootstrap.min.js"></script>
+    <script>
+        // 全选/取消全选
+        $('#selectAll').click(function() {
+            $('.permissionCheck').prop('checked', $(this).prop('checked'));
+        });
+
+        // 添加权限
+        function addPermission() {
+            alert('添加权限功能开发中');
+        }
+
+        // 删除选中权限
+        function deletePermissions() {
+            alert('删除选中权限功能开发中');
+        }
+
+        // 编辑权限
+        function editPermission(permissionId) {
+            alert('编辑权限功能开发中，权限ID：' + permissionId);
+        }
+
+        // 删除权限
+        function deletePermission(permissionId) {
+            if (confirm('确定要删除该权限吗？')) {
+                alert('删除权限功能开发中，权限ID：' + permissionId);
+            }
+        }
+    </script>
+</body>
+</html>

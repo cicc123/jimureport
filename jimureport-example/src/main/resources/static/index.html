@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>积木报表 - 首页</title>
+    <link rel="stylesheet" href="/login/cdn/bootstrap.min.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        .topbar {
+            background-color: #343a40;
+            color: white;
+            padding: 0 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .topbar .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+        }
+        .topbar .logo {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .topbar .menu {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .topbar .menu li {
+            margin-left: 20px;
+        }
+        .topbar .menu a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+        }
+        .topbar .menu a:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+        .content {
+            padding: 20px;
+        }
+        .welcome {
+            margin-bottom: 30px;
+        }
+        .card {
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: bold;
+        }
+        .card-body {
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="container">
+            <div class="logo">积木报表</div>
+            <ul class="menu">
+                <li><a href="/jmreport/list">报表管理</a></li>
+                <li><a href="/formAssign/index">表单分配</a></li>
+                <li><a href="/user/list">用户管理</a></li>
+                <li><a href="/role/list">角色管理</a></li>
+                <li><a href="/permission/list">权限管理</a></li>
+                <li><a href="/logout">退出登录</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="content">
+        <div class="welcome">
+            <h1>欢迎使用积木报表</h1>
+            <p>这是登录后的首页，您可以通过顶部菜单访问不同的功能模块。</p>
+        </div>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">报表管理</div>
+                    <div class="card-body">
+                        <p>创建、编辑和管理报表</p>
+                        <a href="/jmreport/list" class="btn btn-primary">进入报表管理</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">表单分配</div>
+                    <div class="card-body">
+                        <p>分配表单权限给用户和角色</p>
+                        <a href="/formAssign/index" class="btn btn-primary">进入表单分配</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">用户管理</div>
+                    <div class="card-body">
+                        <p>管理系统用户和权限</p>
+                        <a href="/user/list" class="btn btn-primary">进入用户管理</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="/login/cdn/bootstrap.min.js"></script>
+</body>
+</html>

@@ -1,10 +1,11 @@
-version: '2'
+version: '3'
 services:
   jimureport-mysql:
     build:
       context: ./db
     environment:
       MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: jimureport
     restart: always
     container_name: jimureport-mysql
     image: jimureport-mysql
@@ -14,10 +15,16 @@ services:
       --explicit_defaults_for_timestamp=true
       --lower_case_table_names=1
       --max_allowed_packet=128M
+      --innodb_buffer_pool_size=256M
+      --innodb_log_file_size=64M
+      --innodb_flush_log_at_trx_commit=2
+      --skip-name-resolve
     ports:
       - 3307:3306
     networks:
       - jimureport-network
+    volumes:
+      - mysql-data:/var/lib/mysql
 
   jimureport:
     build:
@@ -29,7 +36,19 @@ services:
       - 8085:8085
     networks:
       - jimureport-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - MYSQL_HOST=jimureport-mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DB=jimureport
+      - JAVA_OPTS=-Xmx512m -Xms256m
+    depends_on:
+      - jimureport-mysql
 
 networks:
   jimureport-network:
     name: jimureport_network
+
+volumes:
+  mysql-data:
+    driver: local

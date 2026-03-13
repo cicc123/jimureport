@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户组管理</title>
+    <link rel="stylesheet" href="/login/cdn/bootstrap.min.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        .topbar {
+            background-color: #343a40;
+            color: white;
+            padding: 0 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .topbar .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+        }
+        .topbar .logo {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .topbar .menu {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .topbar .menu li {
+            margin-left: 20px;
+        }
+        .topbar .menu a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+        }
+        .topbar .menu a:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+        .content {
+            padding: 20px;
+        }
+        .card {
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: bold;
+        }
+        .card-body {
+            padding: 20px;
+        }
+        .table-responsive {
+            margin-top: 20px;
+        }
+        .btn-group {
+            margin-bottom: 20px;
+        }
+        .search-form {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .pagination {
+            margin-top: 20px;
+            justify-content: center;
+        }
+        .modal-body {
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .user-select {
+            margin-top: 20px;
+        }
+        .user-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        .user-list ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .user-list li {
+            padding: 5px 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .user-list li:hover {
+            background-color: #f8f9fa;
+        }
+        .user-list input[type="checkbox"] {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="container">
+            <div class="logo">积木报表</div>
+            <ul class="menu">
+                <li><a href="/index.html">首页</a></li>
+                <li><a href="/jmreport/list">报表管理</a></li>
+                <li><a href="/formAssign/index">表单分配</a></li>
+                <li><a href="/user/list">用户管理</a></li>
+                <li><a href="/user/group" class="active">用户组管理</a></li>
+                <li><a href="/role/list">角色管理</a></li>
+                <li><a href="/permission/list">权限管理</a></li>
+                <li><a href="/logout">退出登录</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="content">
+        <div class="card">
+            <div class="card-header">用户组管理</div>
+            <div class="card-body">
+                <!-- 搜索表单 -->
+                <div class="search-form">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="groupName">用户组名称</label>
+                                <input type="text" class="form-control" id="groupName" placeholder="请输入用户组名称">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="status">状态</label>
+                                <select class="form-control" id="status">
+                                    <option value="">全部</option>
+                                    <option value="1">正常</option>
+                                    <option value="0">禁用</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group" style="margin-top: 24px;">
+                                <button class="btn btn-primary" onclick="searchGroups()">搜索</button>
+                                <button class="btn btn-default" onclick="resetSearch()">重置</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 操作按钮 -->
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="addGroup()">添加用户组</button>
+                    <button class="btn btn-danger" onclick="deleteGroups()">删除选中用户组</button>
+                </div>
+                
+                <!-- 用户组列表 -->
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAll"></th>
+                                <th>ID</th>
+                                <th>用户组名称</th>
+                                <th>用户组编码</th>
+                                <th>描述</th>
+                                <th>状态</th>
+                                <th>创建时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="groupTableBody">
+                            <!-- 动态生成用户组列表 -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- 分页 -->
+                <nav>
+                    <ul class="pagination" id="pagination">
+                        <!-- 动态生成分页 -->
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 添加/编辑用户组模态框 -->
+    <div class="modal fade" id="groupModal" tabindex="-1" role="dialog" aria-labelledby="groupModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="groupModalLabel">添加用户组</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <form id="groupForm">
+                        <input type="hidden" id="groupId">
+                        <div class="form-group">
+                            <label for="group_name">用户组名称 *</label>
+                            <input type="text" class="form-control" id="group_name" name="group_name" placeholder="请输入用户组名称">
+                        </div>
+                        <div class="form-group">
+                            <label for="group_code">用户组编码 *</label>
+                            <input type="text" class="form-control" id="group_code" name="group_code" placeholder="请输入用户组编码">
+                        </div>
+                        <div class="form-group">
+                            <label for="description">描述</label>
+                            <textarea class="form-control" id="description" name="description" placeholder="请输入用户组描述" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="status">状态</label>
+                            <select class="form-control" id="status" name="status">
+                                <option value="1">正常</option>
+                                <option value="0">禁用</option>
+                            </select>
+                        </div>
+                        
+                        <!-- 用户选择 -->
+                        <div class="user-select">
+                            <h5>选择用户</h5>
+                            <div class="form-group">
+                                <input type="text" class="form-control" id="userSearch" placeholder="搜索用户" onkeyup="searchUsers()">
+                            </div>
+                            <div class="user-list" id="userList">
+                                <!-- 动态生成用户列表 -->
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveGroup()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="/login/cdn/bootstrap.min.js"></script>
+    <script>
+        var currentPage = 1;
+        var pageSize = 10;
+        var currentGroupId = null;
+        
+        // 页面加载时获取用户组列表
+        $(document).ready(function() {
+            getGroupList();
+        });
+        
+        // 全选/取消全选
+        $('#selectAll').click(function() {
+            $('.groupCheck').prop('checked', $(this).prop('checked'));
+        });
+        
+        // 获取用户组列表
+        function getGroupList() {
+            var groupName = $('#groupName').val();
+            var status = $('#status').val();
+            
+            $.ajax({
+                url: '/api/userGroup/list',
+                type: 'GET',
+                data: {
+                    groupName: groupName,
+                    status: status ? status : null,
+                    page: currentPage,
+                    pageSize: pageSize
+                },
+                success: function(response) {
+                    if (response.success) {
+                        var groups = response.data.list;
+                        var total = response.data.total;
+                        
+                        // 清空表格
+                        $('#groupTableBody').empty();
+                        
+                        // 填充表格
+                        if (groups.length > 0) {
+                            groups.forEach(function(group) {
+                                var statusText = group.status == 1 ? '正常' : '禁用';
+                                var statusClass = group.status == 1 ? 'label-success' : 'label-danger';
+                                
+                                var row = '<tr>';
+                                row += '<td><input type="checkbox" class="groupCheck" value="' + group.id + '"></td>';
+                                row += '<td>' + group.id + '</td>';
+                                row += '<td>' + group.group_name + '</td>';
+                                row += '<td>' + group.group_code + '</td>';
+                                row += '<td>' + (group.description || '') + '</td>';
+                                row += '<td><span class="label ' + statusClass + '">' + statusText + '</span></td>';
+                                row += '<td>' + group.create_time + '</td>';
+                                row += '<td>';
+                                row += '<button class="btn btn-sm btn-primary" onclick="editGroup(\'' + group.id + '\')">编辑</button> ';
+                                row += '<button class="btn btn-sm btn-danger" onclick="deleteGroup(\'' + group.id + '\')">删除</button> ';
+                                row += '<button class="btn btn-sm btn-' + (group.status == 1 ? 'warning' : 'success') + '" onclick="toggleGroupStatus(\'' + group.id + '\', ' + (group.status == 1 ? 0 : 1) + ')">' + (group.status == 1 ? '禁用' : '启用') + '</button>';
+                                row += '</td>';
+                                row += '</tr>';
+                                
+                                $('#groupTableBody').append(row);
+                            });
+                        } else {
+                            var row = '<tr><td colspan="8" class="text-center">暂无数据</td></tr>';
+                            $('#groupTableBody').append(row);
+                        }
+                        
+                        // 生成分页
+                        generatePagination(total);
+                    } else {
+                        alert('获取用户组列表失败：' + response.msg);
+                    }
+                },
+                error: function() {
+                    alert('获取用户组列表失败');
+                }
+            });
+        }
+        
+        // 生成分页
+        function generatePagination(total) {
+            var totalPages = Math.ceil(total / pageSize);
+            var paginationHtml = '';
+            
+            // 上一页
+            paginationHtml += '<li ' + (currentPage == 1 ? 'class="disabled"' : '') + '><a href="#" onclick="goToPage(' + (currentPage - 1) + ')">上一页</a></li>';
+            
+            // 页码
+            for (var i = 1; i <= totalPages; i++) {
+                paginationHtml += '<li ' + (currentPage == i ? 'class="active"' : '') + '><a href="#" onclick="goToPage(' + i + ')">' + i + '</a></li>';
+            }
+            
+            // 下一页
+            paginationHtml += '<li ' + (currentPage == totalPages ? 'class="disabled"' : '') + '><a href="#" onclick="goToPage(' + (currentPage + 1) + ')">下一页</a></li>';
+            
+            $('#pagination').html(paginationHtml);
+        }
+        
+        // 跳转到指定页面
+        function goToPage(page) {
+            if (page >= 1) {
+                currentPage = page;
+                getGroupList();
+            }
+        }
+        
+        // 搜索用户组
+        function searchGroups() {
+            currentPage = 1;
+            getGroupList();
+        }
+        
+        // 重置搜索
+        function resetSearch() {
+            $('#groupName').val('');
+            $('#status').val('');
+            currentPage = 1;
+            getGroupList();
+        }
+        
+        // 搜索用户
+        function searchUsers() {
+            var username = $('#userSearch').val();
+            loadUsers(currentGroupId, username);
+        }
+        
+        // 加载用户列表
+        function loadUsers(groupId, username) {
+            $.ajax({
+                url: '/api/userGroup/usersNotInGroup/' + groupId,
+                type: 'GET',
+                data: { username: username },
+                success: function(response) {
+                    if (response.success) {
+                        var users = response.data;
+                        var userListHtml = '<ul>';
+                        
+                        users.forEach(function(user) {
+                            userListHtml += '<li><input type="checkbox" name="user_ids" value="' + user.id + '"> ' + user.username + ' (' + user.real_name + ')</li>';
+                        });
+                        
+                        userListHtml += '</ul>';
+                        $('#userList').html(userListHtml);
+                    } else {
+                        alert('获取用户列表失败：' + response.msg);
+                    }
+                },
+                error: function() {
+                    alert('获取用户列表失败');
+                }
+            });
+        }
+        
+        // 添加用户组
+        function addGroup() {
+            $('#groupModalLabel').text('添加用户组');
+            $('#groupId').val('');
+            $('#groupForm')[0].reset();
+            currentGroupId = 'new';
+            loadUsers('new', '');
+            $('#groupModal').modal('show');
+        }
+        
+        // 编辑用户组
+        function editGroup(groupId) {
+            $.ajax({
+                url: '/api/userGroup/info/' + groupId,
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        var group = response.data;
+                        $('#groupModalLabel').text('编辑用户组');
+                        $('#groupId').val(group.id);
+                        $('#group_name').val(group.group_name);
+                        $('#group_code').val(group.group_code);
+                        $('#description').val(group.description);
+                        $('#status').val(group.status);
+                        currentGroupId = groupId;
+                        
+                        // 加载用户列表
+                        loadUsers(groupId, '');
+                        
+                        // 加载已选中的用户
+                        $.ajax({
+                            url: '/api/userGroup/users/' + groupId,
+                            type: 'GET',
+                            success: function(usersResponse) {
+                                if (usersResponse.success) {
+                                    var usersInGroup = usersResponse.data;
+                                    usersInGroup.forEach(function(user) {
+                                        $('input[name="user_ids"][value="' + user.id + '"]').prop('checked', true);
+                                    });
+                                }
+                            }
+                        });
+                        
+                        $('#groupModal').modal('show');
+                    } else {
+                        alert('获取用户组信息失败：' + response.msg);
+                    }
+                },
+                error: function() {
+                    alert('获取用户组信息失败');
+                }
+            });
+        }
+        
+        // 保存用户组
+        function saveGroup() {
+            var groupId = $('#groupId').val();
+            var groupData = {
+                group_name: $('#group_name').val(),
+                group_code: $('#group_code').val(),
+                description: $('#description').val(),
+                status: parseInt($('#status').val()),
+                user_ids: []
+            };
+            
+            // 收集选中的用户
+            $('input[name="user_ids"]:checked').each(function() {
+                groupData.user_ids.push($(this).val());
+            });
+            
+            // 验证必填字段
+            if (!groupData.group_name) {
+                alert('用户组名称不能为空');
+                return;
+            }
+            if (!groupData.group_code) {
+                alert('用户组编码不能为空');
+                return;
+            }
+            
+            var url = groupId ? '/api/userGroup/update/' + groupId : '/api/userGroup/create';
+            var type = groupId ? 'PUT' : 'POST';
+            
+            $.ajax({
+                url: url,
+                type: type,
+                contentType: 'application/json',
+                data: JSON.stringify(groupData),
+                success: function(response) {
+                    if (response.success) {
+                        alert('保存成功');
+                        $('#groupModal').modal('hide');
+                        getGroupList();
+                    } else {
+                        alert('保存失败：' + response.msg);
+                    }
+                },
+                error: function() {
+                    alert('保存失败');
+                }
+            });
+        }
+        
+        // 删除用户组
+        function deleteGroup(groupId) {
+            if (confirm('确定要删除该用户组吗？')) {
+                $.ajax({
+                    url: '/api/userGroup/delete/' + groupId,
+                    type: 'DELETE',
+                    success: function(response) {
+                        if (response.success) {
+                            alert('删除成功');
+                            getGroupList();
+                        } else {
+                            alert('删除失败：' + response.msg);
+                        }
+                    },
+                    error: function() {
+                        alert('删除失败');
+                    }
+                });
+            }
+        }
+        
+        // 批量删除用户组
+        function deleteGroups() {
+            var selectedIds = [];
+            $('.groupCheck:checked').each(function() {
+                selectedIds.push($(this).val());
+            });
+            
+            if (selectedIds.length == 0) {
+                alert('请选择要删除的用户组');
+                return;
+            }
+            
+            if (confirm('确定要删除选中的用户组吗？')) {
+                $.ajax({
+                    url: '/api/userGroup/batchDelete',
+                    type: 'DELETE',
+                    contentType: 'application/json',
+                    data: JSON.stringify(selectedIds),
+                    success: function(response) {
+                        if (response.success) {
+                            alert('批量删除成功');
+                            getGroupList();
+                        } else {
+                            alert('批量删除失败：' + response.msg);
+                        }
+                    },
+                    error: function() {
+                        alert('批量删除失败');
+                    }
+                });
+            }
+        }
+        
+        // 切换用户组状态
+        function toggleGroupStatus(groupId, status) {
+            var statusText = status == 1 ? '启用' : '禁用';
+            if (confirm('确定要' + statusText + '该用户组吗？')) {
+                $.ajax({
+                    url: '/api/userGroup/status/' + groupId,
+                    type: 'PUT',
+                    data: { status: status },
+                    success: function(response) {
+                        if (response.success) {
+                            alert(statusText + '成功');
+                            getGroupList();
+                        } else {
+                            alert(statusText + '失败：' + response.msg);
+                        }
+                    },
+                    error: function() {
+                        alert(statusText + '失败');
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>

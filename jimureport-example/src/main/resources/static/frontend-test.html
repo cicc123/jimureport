@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>前端测试</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>前端测试</h1>
+    <button onclick="testUserList()">测试用户列表</button>
+    <button onclick="testAddUser()">测试添加用户</button>
+    <button onclick="testSearch()">测试搜索</button>
+    <div id="result"></div>
+    
+    <script>
+        function testUserList() {
+            console.log('测试用户列表');
+            $.ajax({
+                url: '/api/user/list',
+                type: 'GET',
+                success: function(response) {
+                    console.log('API响应:', response);
+                    if (response.success) {
+                        var resultData = response.data && response.data.data ? response.data.data : response.data;
+                        console.log('处理后的数据:', resultData);
+                        var users = resultData.list;
+                        var total = resultData.total;
+                        console.log('用户列表:', users);
+                        console.log('总数:', total);
+                        
+                        var html = '<h2>用户列表</h2>';
+                        html += '<p>总数: ' + total + '</p>';
+                        html += '<table border="1">';
+                        html += '<tr><th>ID</th><th>用户名</th><th>姓名</th><th>状态</th></tr>';
+                        users.forEach(function(user) {
+                            html += '<tr>';
+                            html += '<td>' + user.id + '</td>';
+                            html += '<td>' + user.username + '</td>';
+                            html += '<td>' + user.real_name + '</td>';
+                            html += '<td>' + (user.status == 1 ? '正常' : '禁用') + '</td>';
+                            html += '</tr>';
+                        });
+                        html += '</table>';
+                        $('#result').html(html);
+                    } else {
+                        $('#result').html('错误: ' + response.msg);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('错误:', xhr, status, error);
+                    $('#result').html('网络错误: ' + error);
+                }
+            });
+        }
+        
+        function testAddUser() {
+            console.log('测试添加用户');
+            var userData = {
+                username: 'testuser6',
+                password: 'Test123!',
+                real_name: 'Test User 6',
+                tenant_id: '1',
+                status: 1,
+                is_admin: 0
+            };
+            
+            $.ajax({
+                url: '/api/user/create',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(userData),
+                success: function(response) {
+                    console.log('添加用户响应:', response);
+                    if (response.success) {
+                        $('#result').html('添加用户成功！');
+                        // 重新加载用户列表
+                        setTimeout(testUserList, 1000);
+                    } else {
+                        $('#result').html('添加用户失败: ' + response.msg);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('错误:', xhr, status, error);
+                    $('#result').html('网络错误: ' + error);
+                }
+            });
+        }
+        
+        function testSearch() {
+            console.log('测试搜索');
+            $.ajax({
+                url: '/api/user/list',
+                type: 'GET',
+                data: { username: 'test' },
+                success: function(response) {
+                    console.log('搜索响应:', response);
+                    if (response.success) {
+                        var resultData = response.data && response.data.data ? response.data.data : response.data;
+                        var users = resultData.list;
+                        var total = resultData.total;
+                        
+                        var html = '<h2>搜索结果</h2>';
+                        html += '<p>总数: ' + total + '</p>';
+                        html += '<table border="1">';
+                        html += '<tr><th>ID</th><th>用户名</th><th>姓名</th><th>状态</th></tr>';
+                        users.forEach(function(user) {
+                            html += '<tr>';
+                            html += '<td>' + user.id + '</td>';
+                            html += '<td>' + user.username + '</td>';
+                            html += '<td>' + user.real_name + '</td>';
+                            html += '<td>' + (user.status == 1 ? '正常' : '禁用') + '</td>';
+                            html += '</tr>';
+                        });
+                        html += '</table>';
+                        $('#result').html(html);
+                    } else {
+                        $('#result').html('错误: ' + response.msg);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('错误:', xhr, status, error);
+                    $('#result').html('网络错误: ' + error);
+                }
+            });
+        }
+        
+        // 页面加载时自动测试
+        $(document).ready(function() {
+            testUserList();
+        });
+    </script>
+</body>
+</html>
