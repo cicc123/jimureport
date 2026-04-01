@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jimureport.enhancement.mapper.SysUserMapper">
+
+    <!-- 根据用户名查询用户 -->
+    <select id="selectByUsername" resultType="com.jimureport.enhancement.entity.SysUser">
+        SELECT *
+        FROM sys_user
+        WHERE username = #{username}
+        AND del_flag = '0'
+        LIMIT 1
+    </select>
+
+    <!-- 根据角色ID查询用户列表 -->
+    <select id="selectUsersByRoleId" resultType="com.jimureport.enhancement.entity.SysUser">
+        SELECT u.*
+        FROM sys_user u
+        INNER JOIN sys_user_role ur ON u.id = ur.user_id
+        WHERE ur.role_id = #{roleId}
+        AND u.del_flag = '0'
+        AND u.status = '0'
+    </select>
+
+    <!-- 根据部门ID查询用户列表 -->
+    <select id="selectUsersByDeptId" resultType="com.jimureport.enhancement.entity.SysUser">
+        SELECT *
+        FROM sys_user
+        WHERE dept_id = #{deptId}
+        AND del_flag = '0'
+        AND status = '0'
+    </select>
+
+</mapper>

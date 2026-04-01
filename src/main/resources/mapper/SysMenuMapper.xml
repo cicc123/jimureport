@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jimureport.enhancement.mapper.SysMenuMapper">
+
+    <!-- 根据角色ID查询菜单列表 -->
+    <select id="selectMenusByRoleId" resultType="com.jimureport.enhancement.entity.SysMenu">
+        SELECT m.*
+        FROM sys_menu m
+        INNER JOIN sys_role_menu rm ON m.id = rm.menu_id
+        WHERE rm.role_id = #{roleId}
+        AND m.status = '0'
+        ORDER BY m.order_num
+    </select>
+
+    <!-- 查询菜单树 -->
+    <select id="selectMenuTree" resultType="com.jimureport.enhancement.entity.SysMenu">
+        SELECT *
+        FROM sys_menu
+        WHERE status = '0'
+        ORDER BY order_num
+    </select>
+
+</mapper>

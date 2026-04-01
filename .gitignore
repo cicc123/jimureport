@@ -1,0 +1,15 @@
+target/
+*.class
+*.jar
+*.jar.original
+logs/
+*.log
+node_modules/
+dist/
+.env
+.env.local
+*.tmp
+.DS_Store
+.idea/
+*.iml
+docker-compose.override.yml

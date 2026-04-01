@@ -1,0 +1,12 @@
+#!/bin/bash
+echo "=== Docker Host IP ==="
+ip addr show docker0 2>/dev/null | grep "inet " || echo "docker0 not found"
+echo ""
+echo "=== MySQL Process ==="
+ps aux | grep mysql | grep -v grep || echo "MySQL not running"
+echo ""
+echo "=== Redis Process ==="
+ps aux | grep redis | grep -v grep || echo "Redis not running"
+echo ""
+echo "=== Listening Ports ==="
+ss -tlnp | grep -E "3306|6379" || echo "No MySQL/Redis ports listening"
