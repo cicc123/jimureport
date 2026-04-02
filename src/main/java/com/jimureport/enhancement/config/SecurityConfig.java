@@ -52,6 +52,8 @@ public class SecurityConfig implements WebMvcConfigurer {
             "/jmreport/**",
             "/drag/**",
             "/sys/**",
+            "/login/**",
+            "/doLogin",
             "/swagger-ui.html",
             "/swagger-ui/**",
             "/swagger-resources/**",
@@ -61,12 +63,16 @@ public class SecurityConfig implements WebMvcConfigurer {
             "/assets/**",
             "/static/**",
             "/favicon.ico",
-            "/*.html",
-            "*.js",
-            "*.css",
-            "*.svg",
-            "*.png",
-            "*.ico"
+            "/**/*.html",
+            "/**/*.js",
+            "/**/*.css",
+            "/**/*.svg",
+            "/**/*.png",
+            "/**/*.ico",
+            "/**/*.woff",
+            "/**/*.woff2",
+            "/**/*.ttf",
+            "/**/*.map"
     };
 
     @Bean
