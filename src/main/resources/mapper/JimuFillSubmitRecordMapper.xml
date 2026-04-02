@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jimureport.enhancement.mapper.JimuFillSubmitRecordMapper">
+
+    <!-- 根据表单ID和用户ID检查重复提交 -->
+    <select id="countByFormIdAndUserId" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM jimu_fill_submit_record
+        WHERE form_id = #{formId}
+        AND user_id = #{userId}
+        AND submit_status = 'success'
+    </select>
+
+</mapper>

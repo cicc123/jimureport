@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jimureport.enhancement.mapper.JimuFillFormFieldMapper">
+
+    <!-- 根据表单ID查询字段列表 -->
+    <select id="selectByFormId" resultType="com.jimureport.enhancement.entity.JimuFillFormField">
+        SELECT *
+        FROM jimu_fill_form_field
+        WHERE form_id = #{formId}
+        AND is_visible = '1'
+        ORDER BY order_num
+    </select>
+
+    <!-- 根据表单ID删除字段 -->
+    <delete id="deleteByFormId">
+        DELETE FROM jimu_fill_form_field WHERE form_id = #{formId}
+    </delete>
+
+</mapper>

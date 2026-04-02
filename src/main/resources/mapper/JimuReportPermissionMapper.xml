@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jimureport.enhancement.mapper.JimuReportPermissionMapper">
+
+    <!-- 根据报表ID查询权限列表 -->
+    <select id="selectByReportId" resultType="com.jimureport.enhancement.entity.JimuReportPermission">
+        SELECT *
+        FROM jimu_report_permission
+        WHERE report_id = #{reportId}
+    </select>
+
+    <!-- 根据用户ID查询权限列表 -->
+    <select id="selectByUserId" resultType="com.jimureport.enhancement.entity.JimuReportPermission">
+        SELECT *
+        FROM jimu_report_permission
+        WHERE grantee_id = #{userId}
+        AND grantee_type = 'user'
+    </select>
+
+</mapper>

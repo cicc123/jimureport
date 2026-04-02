@@ -1,0 +1,12 @@
+/home/ubuntu/jimu/src/test/java/com/jimureport/enhancement/UserIntegrationTest.java
+/home/ubuntu/jimu/src/test/java/com/jimureport/enhancement/config/TestSaTokenConfig.java
+/home/ubuntu/jimu/src/test/java/com/jimureport/enhancement/controller/JimuFillFormControllerTest.java
+/home/ubuntu/jimu/src/test/java/com/jimureport/enhancement/controller/SysMenuControllerTest.java
+/home/ubuntu/jimu/src/test/java/com/jimureport/enhancement/controller/SysPermissionControllerTest.java
+/home/ubuntu/jimu/src/test/java/com/jimureport/enhancement/controller/SysRoleControllerTest.java
+/home/ubuntu/jimu/src/test/java/com/jimureport/enhancement/controller/SysUserControllerTest.java
+/home/ubuntu/jimu/src/test/java/com/jimureport/enhancement/exception/GlobalExceptionHandlerTest.java
+/home/ubuntu/jimu/src/test/java/com/jimureport/enhancement/service/JimuFillFormServiceImplTest.java
+/home/ubuntu/jimu/src/test/java/com/jimureport/enhancement/service/JimuReportTokenServiceImplTest.java
+/home/ubuntu/jimu/src/test/java/com/jimureport/enhancement/service/SysPermissionServiceImplTest.java
+/home/ubuntu/jimu/src/test/java/com/jimureport/enhancement/service/SysUserServiceImplTest.java

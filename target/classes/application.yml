@@ -1,0 +1,116 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: jimureport-enhancement
+
+  # 登录认证配置（用于报表界面登录）
+  security:
+    enable: true
+    user:
+      name: "admin"
+      password: "123456"
+
+  # 数据源配置
+  datasource:
+    url: jdbc:mysql://jimureport-mysql:3306/jimureport_enhancement?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: root123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # Redis配置
+  redis:
+    host: jimureport-redis
+    port: 6379
+    password:
+    database: 0
+    timeout: 10000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+
+  # Jackson配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    serialization:
+      write-dates-as-timestamps: false
+
+# MyBatis-Plus配置
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  type-aliases-package: com.jimureport.enhancement.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: assign_id
+      logic-delete-field: delFlag
+      logic-delete-value: 2
+      logic-not-delete-value: 0
+
+# Sa-Token配置
+sa-token:
+  # token名称（同时也是cookie名称）
+  token-name: X-Access-Token
+  # token有效期（秒），默认24小时
+  timeout: 86400
+  # token临时有效期（秒），-1表示不限制
+  activity-timeout: 1800
+  # 是否允许同一账号多端同时登录
+  is-concurrent: true
+  # 多端登录时是否共享同一个token
+  is-share: false
+  # token风格
+  token-style: uuid
+  # 是否输出操作日志
+  is-log: false
+  # 是否从cookie中读取token
+  is-read-cookie: true
+  # 是否从header中读取token
+  is-read-header: true
+
+# 积木报表配置
+jimureport:
+  # 安全模式(lowCodeMode: dev-开发模式 prod-生产模式)
+  lowCodeMode: dev
+  # 数据库配置
+  database:
+    type: mysql
+  # 多租户配置
+  multitenancy:
+    enabled: false
+  # 自定义token配置
+  token:
+    enabled: true
+    header: X-Access-Token
+  # 上传配置
+  upload:
+    type: local
+    local:
+      path: /opt/upload
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.jimureport.enhancement: DEBUG
+    org.jeecg.modules.jmreport: DEBUG
+  file:
+    name: logs/jimureport-enhancement.log
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Swagger配置
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
